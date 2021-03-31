@@ -9,11 +9,11 @@ using System.ServiceModel.Channels;
 using System.Web;
 using System.Web.Hosting;
 using System.Web.Http;
-using PRS_New.Models;
-using PRS_New.ViewModel;
+using SampleCode.Models;
+using SampleCode.ViewModel;
 using Utilities.Utility;
 
-namespace PRS_New.Controllers
+namespace SampleCode.Controllers
 {
     public class BaseApiController : ApiController
     {

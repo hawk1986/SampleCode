@@ -4,10 +4,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
-using PRS_New.Interface;
-using PRS_New.ViewModel;
+using SampleCode.Interface;
+using SampleCode.ViewModel;
 
-namespace PRS_New.Controllers.Api.Public
+namespace SampleCode.Controllers.Api.Public
 {
     [RoutePrefix("api/resetPassword")]
     public class ResetPasswordController : ApiController

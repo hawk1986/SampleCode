@@ -2,12 +2,12 @@
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Web.Http;
-using PRS_New.Interface;
-using PRS_New.Manager;
-using PRS_New.Models;
-using PRS_New.ViewModel;
+using SampleCode.Interface;
+using SampleCode.Manager;
+using SampleCode.Models;
+using SampleCode.ViewModel;
 
-namespace PRS_New.Controllers.Api.Public
+namespace SampleCode.Controllers.Api.Public
 {
     [RoutePrefix("api/login")]
     public class LoginController : BaseApiController

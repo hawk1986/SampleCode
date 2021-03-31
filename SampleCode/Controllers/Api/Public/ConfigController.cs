@@ -5,11 +5,11 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Web.Http;
-using PRS_New.Models.Public;
+using SampleCode.Models.Public;
 using Utilities.Utility;
-//using static PRS_NewManager.MemberAccountManager;
+//using static SampleCodeManager.MemberAccountManager;
 
-namespace PRS_New.Controllers.Api.Public
+namespace SampleCode.Controllers.Api.Public
 {
     [RoutePrefix("api/config")]
     public class ConfigController : ApiController

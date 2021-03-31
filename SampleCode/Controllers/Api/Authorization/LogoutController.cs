@@ -1,12 +1,12 @@
 ﻿using System.Net;
 using System.Net.Http;
 using System.Web.Http;
-using PRS_New.Attributes;
-using PRS_New.Interface;
-using PRS_New.Manager;
-using PRS_New.ViewModel;
+using SampleCode.Attributes;
+using SampleCode.Interface;
+using SampleCode.Manager;
+using SampleCode.ViewModel;
 
-namespace PRS_New.Controllers.Api.Authorization
+namespace SampleCode.Controllers.Api.Authorization
 {
     [RoutePrefix("api/logout")]
     public class LogoutController : ApiController

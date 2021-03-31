@@ -4,10 +4,10 @@ using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Web.Http;
 using Utilities.Utility;
-using PRS_New.Manager;
-using PRS_New.ViewModel;
+using SampleCode.Manager;
+using SampleCode.ViewModel;
 
-namespace PRS_New.Controllers.Api.Public
+namespace SampleCode.Controllers.Api.Public
 {
     [RoutePrefix("api/captcha")]
     public class CaptchaController : ApiController

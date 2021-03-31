@@ -1,8 +1,8 @@
-﻿using PRS_New.Attributes;
-using PRS_New.Interface;
-using PRS_New.ViewModel;
-using PRS_New.ViewModel.ListResult;
-using PRS_New.ViewModel.SearchModel;
+﻿using SampleCode.Attributes;
+using SampleCode.Interface;
+using SampleCode.ViewModel;
+using SampleCode.ViewModel.ListResult;
+using SampleCode.ViewModel.SearchModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +12,10 @@ using System.Net.Http.Formatting;
 using System.Web.Http;
 using Newtonsoft.Json;
 using System.Text;
-//using static PRS_NewManager.MemberAccountManager;
+//using static SampleCodeManager.MemberAccountManager;
 using Utilities.Utility;
 
-namespace PRS_New.Controllers.Api
+namespace SampleCode.Controllers.Api
 {
     [RoutePrefix("api")]
     public class apiController : BaseApiController

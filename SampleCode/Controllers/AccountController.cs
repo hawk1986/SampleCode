@@ -1,5 +1,5 @@
-﻿using PRS_New.Interface;
-using PRS_New.ViewModel;
+﻿using SampleCode.Interface;
+using SampleCode.ViewModel;
 using Microsoft.AspNet.Identity;
 using Microsoft.Owin.Security;
 using ResourceLibrary;
@@ -12,9 +12,9 @@ using Utilities;
 using Utilities.Attribute;
 using Utilities.Extensions;
 using Utilities.Utility;
-using PRS_New.Manager;
+using SampleCode.Manager;
 
-namespace PRS_New.Controllers
+namespace SampleCode.Controllers
 {
     public class AccountController : BaseController
     {

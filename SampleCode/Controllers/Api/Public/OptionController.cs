@@ -3,10 +3,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Web.Http;
-using PRS_New;
-using PRS_New.Models.Public;
+using SampleCode;
+using SampleCode.Models.Public;
 
-namespace PRS_New.Controllers.Api.Public
+namespace SampleCode.Controllers.Api.Public
 {
     [RoutePrefix("api/option")]
     public class OptionController : ApiController

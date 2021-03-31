@@ -7,9 +7,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
-using PRS_New.Models;
+using SampleCode.Models;
 
-namespace PRS_New.Controllers.Api.Public
+namespace SampleCode.Controllers.Api.Public
 {
     [RoutePrefix("api/downloadArchive")]
     public class DownloadArchiveController : ApiController
