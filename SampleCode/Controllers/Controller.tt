@@ -1,0 +1,1151 @@
+﻿<#@ template debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" encoding="utf-8" #>
+<#@ include file="EF6.Utility.CS.ttinclude" #>
+<#@ Assembly Name="System.Core" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#
+var ignoreFileName = "tt-ignore.txt";
+var directory = GetCurrentDirectory();
+var path = Path.Combine(directory.Replace("\\Controllers", ""), ignoreFileName);
+string line;
+var file = new StreamReader(path);
+var ignoreList = new List<string>();
+if ((line = file.ReadLine()) != null)
+{
+    ignoreList = line.Split(',').ToList();
+}
+file.Close();
+string inputFile = FindEDMXFileName();
+var textTransform = DynamicTextTransformation.Create(this);
+var code = new CodeGenerationTools(this);
+var ef = new MetadataTools(this);
+var typeMapper = new TypeMapper(code, ef, textTransform.Errors);
+var fileManager = EntityFrameworkTemplateFileManager.Create(this);
+var itemCollection = new EdmMetadataLoader(textTransform.Host, textTransform.Errors).CreateEdmItemCollection(inputFile);
+var codeStringGenerator = new CodeStringGenerator(code, typeMapper, ef);
+#>
+<#
+if(!DoesFileExist("CommonController.cs"))
+{
+    fileManager.StartNewFile("CommonController.cs");
+#>
+using ResourceLibrary;
+using System.Collections.Generic;
+using System.Web.Mvc;
+using Utilities.Attribute;
+using <#= code.VsNamespaceSuggestion().Replace("Controllers", "Interface") #>;
+using <#= code.VsNamespaceSuggestion().Replace("Controllers", "ViewModel.ListResult") #>;
+
+namespace <#= code.VsNamespaceSuggestion() #>
+{
+    public class CommonController : BaseController
+    {
+        readonly IUserProfileManager _userProfileManager;
+
+        public CommonController(IUserProfileManager userProfileManager)
+        {
+            _userProfileManager = userProfileManager;
+        }
+
+        /// <summary>
+        /// get table list fields
+        /// </summary>
+        /// <param name="functionName"></param>
+        /// <returns></returns>
+        [WebAuthorize(Code = "Pass")]
+        [HttpGet]
+        public ActionResult GetColumn(string functionName)
+        {
+            var result = new List<ListOption>();
+            var profile = _userProfileManager.GetByUserIDAndFunction(ID.Value, functionName);
+            if (null != profile && profile.ListOption != null && profile.ListOption.Count > 0)
+            {
+                result = profile.ListOption;
+            }
+            else
+            {
+                switch (functionName)
+                {
+<#
+	foreach (var entity in typeMapper.GetItemsToGenerate<EntityType>(itemCollection).OrderBy(e => e.Name))
+	{
+		var simpleProperties = typeMapper.GetSimpleProperties(entity);
+		if (!simpleProperties.Any(x => code.Escape(x) == "ID") || ignoreList.Contains(entity.Name))
+		{
+			continue;
+		}
+#>
+                    case "<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>":
+                        result = new List<ListOption>
+                        {
+                            new ListOption{ checkbox = true, sortable = false, visible = true },
+<#
+        if (simpleProperties.Any())
+        {
+            foreach (var edmProperty in simpleProperties)
+            {
+				if (code.Escape(edmProperty) != "SequenceNo" && code.Escape(edmProperty) != "ID")
+				{
+					if (code.Escape(edmProperty) != "ID" &&
+						code.Escape(edmProperty).Contains("ID") &&
+						typeMapper.GetTypeName(edmProperty.TypeUsage) == "System.Guid")
+					{
+#>
+                            new ListOption{ field = "<#=code.Escape(edmProperty).Replace("ID", "Name")#>", title = Resource.<#=code.Escape(edmProperty).Replace("ID", "Name")#> },
+<#
+					}
+					else if (typeMapper.GetTypeName(edmProperty.TypeUsage) == "System.Boolean")
+					{
+#>
+                            new ListOption{ field = "<#=code.Escape(edmProperty)#>", title = Resource.<#=code.Escape(edmProperty)#>, formatter = "BitFormatter" },
+<#
+					}
+					else if (typeMapper.GetTypeName(edmProperty.TypeUsage) == "System.DateTime" && code.Escape(edmProperty) != "CreateTime")
+					{
+#>
+                            new ListOption{ field = "<#=code.Escape(edmProperty)#>", title = Resource.<#=code.Escape(edmProperty)#>, formatter = "JsonTimeFormatter" },
+<#
+					}
+					else if (code.Escape(edmProperty) != "Description" &&
+							 code.Escape(edmProperty) != "Remark" &&
+					         code.Escape(edmProperty) != "CreateUser" &&
+					         code.Escape(edmProperty) != "CreateTime" &&
+							 code.Escape(edmProperty) != "FreeFields")
+					{
+#>
+                            new ListOption{ field = "<#=code.Escape(edmProperty)#>", title = Resource.<#=code.Escape(edmProperty)#> },
+<#
+					}
+				}
+            }
+        }
+#>
+                        };
+                        break;
+<#
+	}
+#>
+                }
+            }
+
+            return Json(result, JsonRequestBehavior.AllowGet);
+        }
+
+        /// <summary>
+        /// set table list fields
+        /// </summary>
+        /// <param name="functionName"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        [WebAuthorize(Code = "Pass")]
+        [HttpPost]
+        public ActionResult SetColumn(string functionName, List<ListOption> data)
+        {
+            var result = false;
+            if (null != data && data.Count > 0 && ID.HasValue)
+            {
+                foreach (var item in data)
+                {
+                    item.formatter = item.formatter ?? string.Empty;
+                }
+                var profile = new UserProfileViewModel
+                {
+                    ID = Guid.NewGuid(),
+                    UserID = ID.Value,
+                    Code = functionName,
+                    ListOption = data
+                };
+
+                try
+                {
+                    _userProfileManager.Save(profile);
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, string.Format(Resource.ExecutionFailedWithID, Resource.Save, Resource.UserProfile, ID.Value + ", Function: " + functionName));
+                }
+            }
+
+            return Json(result);
+        }
+    }
+}
+<#
+}
+else
+{
+    fileManager.StartNewFile("CommonController.cs");
+    this.Write(OutputFile("CommonController.cs"));
+}
+foreach (var entity in typeMapper.GetItemsToGenerate<EntityType>(itemCollection).OrderBy(e => e.Name))
+{
+	var simpleProperties = typeMapper.GetSimpleProperties(entity);
+    if (!simpleProperties.Any(x => code.Escape(x) == "ID") || ignoreList.Contains(entity.Name))
+	{
+		continue;
+	}
+	var fileName = entity.Name + "Controller.cs";
+    if(!DoesFileExist(fileName))
+    {
+        fileManager.StartNewFile(fileName);
+#>
+#pragma warning disable 1591
+//------------------------------------------------------------------------------
+// <auto-generated>
+//     This code was generated by a tool.
+//     Generated at <#=DateTime.UtcNow.AddHours(8)#>
+//     Runtime Version: <#=Environment.Version#>
+//
+//     Changes to this file may cause incorrect behavior and will be lost if
+//     the code is regenerated.
+// </auto-generated>
+//------------------------------------------------------------------------------
+using NLog;
+using ResourceLibrary;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web.Mvc;
+using Utilities;
+using Utilities.Attribute;
+using Utilities.Utility;
+using <#= code.VsNamespaceSuggestion().Replace("Controllers", "Interface") #>;
+using <#= code.VsNamespaceSuggestion().Replace("Controllers", "ViewModel") #>;
+using <#= code.VsNamespaceSuggestion().Replace("Controllers", "ViewModel.ListResult") #>;
+using <#= code.VsNamespaceSuggestion().Replace("Controllers", "ViewModel.SearchModel") #>;
+
+namespace <#= code.VsNamespaceSuggestion() #>
+{
+    <#=codeStringGenerator.EntityClassOpening(entity)#>
+    {
+        readonly ICommonManager _commonManager;
+        readonly I<#= entity.Name #>Manager _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager;
+
+        public <#= entity.Name #>Controller(
+            ICommonManager commonManager,
+            I<#= entity.Name #>Manager <#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager)
+        {
+            _commonManager = commonManager;
+            _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager = <#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager;
+            logger = LogManager.GetCurrentClassLogger();
+        }
+<#
+		if (simpleProperties.Any(x => code.Escape(x) == "Code"))
+		{
+#>
+
+        /// <summary>
+        /// 檢查 Code 是否重複
+        /// </summary>
+        /// <param name="Code"></param>
+        /// <param name="Initial"></param>
+        /// <returns></returns>
+        [WebAuthorize(Code = "<#= entity.Name #>Create,<#= entity.Name #>Edit")]
+        [HttpGet]
+        public ActionResult CodeBeUse(string Code, string Initial)
+        {
+            bool result = false;
+            if (Code.Trim().ToLower() != Initial.Trim().ToLower())
+            {
+                try
+                {
+                    result = _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.CodeBeUse(Code);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, string.Format(Resource.CheckBeUsedError, Resource.<#= entity.Name #>, Resource.Code));
+
+                    // 檢查發生錯誤，當作名稱重複，不給儲存。
+                    result = true;
+                }
+            }
+
+            return Json(!result, JsonRequestBehavior.AllowGet);
+        }
+<#
+		}
+#>
+<#
+		if (simpleProperties.Any(x => code.Escape(x) == "Account"))
+		{
+#>
+
+        /// <summary>
+        /// 檢查 Account 是否重複
+        /// </summary>
+        /// <param name="Account"></param>
+        /// <param name="Initial"></param>
+        /// <returns></returns>
+        [WebAuthorize(Code = "<#= entity.Name #>Create,<#= entity.Name #>Edit")]
+        [HttpGet]
+        public ActionResult AccountBeUse(string Account, string Initial)
+        {
+            bool result = false;
+            if (Account.Trim().ToLower() != Initial.Trim().ToLower())
+            {
+                try
+                {
+                    result = _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.AccountBeUse(Account);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, string.Format(Resource.CheckBeUsedError, Resource.<#= entity.Name #>, Resource.Account));
+
+                    // 檢查發生錯誤，當作名稱重複，不給儲存。
+                    result = true;
+                }
+            }
+
+            return Json(!result, JsonRequestBehavior.AllowGet);
+        }
+<#
+		}
+#>
+
+        /// <summary>
+        /// 首頁
+        /// </summary>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpGet]
+        public ActionResult Index()
+        {
+            // 初始化查詢物件
+            var searchModel = new <#= entity.Name #>SearchModel();
+            if (null != UnobtrusiveSession.Session["QueryModel"])
+            {
+                // 查詢條件存在 session 則取出
+                var temp = UnobtrusiveSession.Session["QueryModel"] as <#= entity.Name #>SearchModel;
+                if (null != temp)
+                {
+                    searchModel = temp;
+                }
+            }
+<#
+		if (simpleProperties.Any(x => code.Escape(x) == "IsEnable"))
+		{
+#>
+            // 初始化查詢下拉選單
+            searchModel.YesNoList = _commonManager.GetYesNoList();
+<#
+		}
+#>
+
+            return View(searchModel);
+        }
+
+        /// <summary>
+        /// 分頁
+        /// </summary>
+        /// <param name="searchModel"></param>
+        /// <returns></returns>
+        [WebAuthorize(Code = "<#= entity.Name #>Index")]
+        [HttpPost]
+        public ActionResult Paging(<#= entity.Name #>SearchModel searchModel)
+        {
+            // 查詢條件儲存於 session
+            UnobtrusiveSession.Session["QueryModel"] = searchModel;
+            // 查詢結果物件初始化
+            var result = new Paging<<#= entity.Name #>ListResult> { total = 0, rows = null };
+            // 查詢
+            try
+            {
+                result = _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.Paging(searchModel);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, string.Format(Resource.PagingError, Resource.<#= entity.Name #>));
+            }
+
+            return Json(result);
+        }
+
+        /// <summary>
+        /// 檢視 <#= entity.Name #> 頁面
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpGet]
+        public ActionResult Details(Guid? id)
+        {
+            <#= entity.Name #>ViewModel viewModel = null;
+            if (id.HasValue && id.Value != Guid.Empty)
+            {
+                try
+                {
+                    // 讀取資料
+                    viewModel = _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.GetByID(id.Value);
+                    if (null == viewModel)
+                    {
+                        // 查無資料
+                        logger.Error(string.Format(Resource.NoData, Resource.<#= entity.Name #>, id.Value));
+                        TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.NoData, Resource.<#= entity.Name #>, id.Value) }.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 查詢發生錯誤
+                    logger.Error(ex, string.Format(Resource.GetDetailsDataError, Resource.<#= entity.Name #>, id.Value));
+                    TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.GetDetailsDataError, Resource.<#= entity.Name #>, id.Value) }.ToString();
+                }
+            }
+            else
+            {
+                // 參數錯誤
+                logger.Error(string.Format(Resource.ParamError, Resource.Details));
+                TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.ParamError, Resource.Details) }.ToString();
+            }
+            // 查無資料轉回列表頁
+            if (null == viewModel)
+            {
+                return RedirectToAction("Index");
+            }
+            // 初始化檢視頁面下拉選單
+            setDropDownList(ref viewModel);
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// 新增 <#= entity.Name #> 頁面
+        /// </summary>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpGet]
+        public ActionResult Create()
+        {
+            var viewModel = new <#= entity.Name #>ViewModel();
+            // 初始化編輯頁面下拉選單
+            setDropDownList(ref viewModel);
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// 新增資料儲存
+        /// </summary>
+        /// <param name="viewModel"></param>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpPost]
+        public ActionResult Create(<#= entity.Name #>ViewModel viewModel)
+        {
+            // 驗證
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    viewModel.ID = Guid.NewGuid();
+<#
+		if (simpleProperties.Any(x => code.Escape(x) == "CreateTime"))
+		{
+#>
+                    viewModel.CreateUser = UserName;
+                    viewModel.CreateTime = NowTime;
+<#
+		}
+		if (simpleProperties.Any(x => code.Escape(x) == "UpdateTime"))
+		{
+#>
+                    viewModel.UpdateUser = UserName;
+                    viewModel.UpdateTime = NowTime;
+<#
+		}
+		if (simpleProperties.Any(x => code.Escape(x) == "LoginTime"))
+		{
+#>
+                    viewModel.LoginTime = NowTime;
+<#
+		}
+#>
+                    _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.Create(viewModel);
+                    UnobtrusiveSession.Session["QueryModel"] = null;
+                    // 完成
+                    TempData["ErrorMsg"] = new JsonMessage { Style = "success", Message = string.Format(Resource.ExecutionCompleted, Resource.Create, Resource.<#= entity.Name #>) }.ToString();
+                    // 轉回列表頁
+                    return RedirectToAction("Index");
+                }
+                catch (Exception ex)
+                {
+                    // 儲存發生錯誤
+                    logger.Error(ex, string.Format(Resource.ExecutionFailedWithID, Resource.Create, Resource.<#= entity.Name #>, viewModel.ID));
+                    TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.ExecutionFailedWithID, Resource.Create, Resource.<#= entity.Name #>, viewModel.ID) }.ToString();
+                }
+            }
+            // 初始化新增頁面下拉選單
+            setDropDownList(ref viewModel);
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// 修改 <#= entity.Name #> 頁面
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpGet]
+        public ActionResult Edit(Guid? id)
+        {
+            <#= entity.Name #>ViewModel viewModel = null;
+            if (id.HasValue && id.Value != Guid.Empty)
+            {
+                try
+                {
+                    // 讀取資料
+                    viewModel = _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.GetByID(id.Value);
+                    if (null == viewModel)
+                    {
+                        // 查無資料
+                        logger.Error(string.Format(Resource.NoData, Resource.<#= entity.Name #>, id.Value));
+                        TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.NoData, Resource.<#= entity.Name #>, id.Value) }.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 查詢發生錯誤
+                    logger.Error(ex, string.Format(Resource.GetEditDataError, Resource.<#= entity.Name #>, id.Value));
+                    TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.GetEditDataError, Resource.<#= entity.Name #>, id.Value) }.ToString();
+                }
+            }
+            else
+            {
+                // 參數錯誤
+                logger.Error(string.Format(Resource.ParamError, Resource.Edit));
+                TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.ParamError, Resource.Edit) }.ToString();
+            }
+            // 查無資料轉回列表頁
+            if (null == viewModel)
+            {
+                return RedirectToAction("Index");
+            }
+            // 初始化編輯頁面下拉選單
+            setDropDownList(ref viewModel);
+
+            return View("Create", viewModel);
+        }
+
+        /// <summary>
+        /// 編輯資料儲存
+        /// </summary>
+        /// <param name="viewModel"></param>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpPost]
+        public ActionResult Edit(<#= entity.Name #>ViewModel viewModel)
+        {
+            // 驗證
+            if (ModelState.IsValid)
+            {
+                try
+                {
+<#
+		if (simpleProperties.Any(x => code.Escape(x) == "UpdateTime"))
+		{
+#>
+                    viewModel.UpdateUser = UserName;
+                    viewModel.UpdateTime = NowTime;
+<#
+		}
+#>
+                    _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.Update(viewModel);
+                    // 完成
+                    TempData["ErrorMsg"] = new JsonMessage { Style = "success", Message = string.Format(Resource.ExecutionCompleted, Resource.Edit, Resource.<#= entity.Name #>) }.ToString();
+                    // 轉回列表頁
+                    return RedirectToAction("Index");
+                }
+                catch (Exception ex)
+                {
+                    // 儲存發生錯誤
+                    logger.Error(ex, string.Format(Resource.ExecutionFailedWithID, Resource.Edit, Resource.<#= entity.Name #>, viewModel.ID));
+                    TempData["ErrorMsg"] = new JsonMessage { Style = "danger", Message = string.Format(Resource.ExecutionFailedWithID, Resource.Edit, Resource.<#= entity.Name #>, viewModel.ID) }.ToString();
+                }
+            }
+            // 初始化編輯頁面下拉選單
+            setDropDownList(ref viewModel);
+
+            return View("Create", viewModel);
+        }
+
+        /// <summary>
+        /// 刪除機構資料
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [WebAuthorize]
+        [HttpPost]
+        public ActionResult Delete(List<Guid> id)
+        {
+            // 預設失敗
+            var result = false;
+            // id 有值進行刪除作業
+            if (id != null && id.Any())
+            {
+                try
+                {
+                    // 進行刪除
+                    _<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>Manager.Delete(id);
+                    result = true;
+                }
+                catch (Exception ex)
+                {
+                    // 刪除失敗
+                    logger.Error(ex, string.Format(Resource.ExecutionFailed, Resource.Delete, Resource.<#= entity.Name #>, id));
+                }
+            }
+
+            return Json(result);
+        }
+
+        /// <summary>
+        /// 設定頁面所需要的下拉選單資料
+        /// </summary>
+        /// <param name="viewModel"></param>
+        void setDropDownList(ref <#= entity.Name #>ViewModel viewModel)
+        {
+<#
+		if (simpleProperties.Any())
+		{
+			foreach (var edmProperty in simpleProperties)
+			{
+				if (code.Escape(edmProperty) != "SequenceNo")
+				{
+					if (code.Escape(edmProperty) != "ID" &&
+						code.Escape(edmProperty).Contains("ID") &&
+						typeMapper.GetTypeName(edmProperty.TypeUsage) == "System.Guid")
+					{
+#>
+            viewModel.<#=code.Escape(edmProperty).Replace("ID", "List")#> = _commonManager.Get<#=code.Escape(edmProperty).Replace("ID", "List")#>();
+<#
+					}
+				}
+			}
+		}
+#>
+        }
+    }
+}
+#pragma warning restore 1591<#
+    }
+    else
+    {
+        fileManager.StartNewFile(fileName);
+        this.Write(OutputFile(fileName));
+    }
+}
+fileManager.Process(); #>
+<#+
+public static void ArgumentNotNull<T>(T arg, string name) where T : class
+{
+    if (arg == null)
+    {
+        throw new ArgumentNullException(name);
+    }
+}
+
+bool DoesFileExist(string filename)
+{
+    return File.Exists(Path.Combine(GetCurrentDirectory(), filename));
+}
+
+string FindEDMXFileName()
+{
+    string edmxFile = "";
+    string directory = GetCurrentDirectory();
+    string[] entityFrameworkFiles = Directory.GetFiles(directory.Replace("\\Controllers", "\\Models"), "*.edmx");
+    if (entityFrameworkFiles.Length > 0)
+        edmxFile = entityFrameworkFiles[0];
+
+    return edmxFile;
+}
+
+string GetCurrentDirectory()
+{
+    string executingDirectoryName = "";
+    string stackTraceFileName = new StackTrace(true).GetFrame(0).GetFileName();
+    if (String.IsNullOrEmpty(stackTraceFileName))
+    {
+        throw new ArgumentException("No value was specified for the 'directoryName' configuration parameter" +
+            ", and we could not figure out the file name from the stack trace (most likely because of running " +
+            "the template with debug='False' specified in the <\u0023@ template \u0023> directive.");
+    }
+    else
+    {
+        executingDirectoryName = Path.GetDirectoryName(stackTraceFileName);
+    }
+    return executingDirectoryName;
+}
+
+string OutputFile(string filename)
+{
+    using (StreamReader sr = new StreamReader(Path.Combine(GetCurrentDirectory(), filename)))
+    {
+        string contents = sr.ReadToEnd();
+        return contents;
+    }
+}
+
+public class CodeStringGenerator
+{
+    private readonly CodeGenerationTools _code;
+    private readonly TypeMapper _typeMapper;
+    private readonly MetadataTools _ef;
+
+    public CodeStringGenerator(CodeGenerationTools code, TypeMapper typeMapper, MetadataTools ef)
+    {
+        ArgumentNotNull(code, "code");
+        ArgumentNotNull(typeMapper, "typeMapper");
+        ArgumentNotNull(ef, "ef");
+
+        _code = code;
+        _typeMapper = typeMapper;
+        _ef = ef;
+    }
+
+    public string Property(EdmProperty edmProperty)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1} {2} {{ {3}get; {4}set; }}",
+            Accessibility.ForProperty(edmProperty),
+            _typeMapper.GetTypeName(edmProperty.TypeUsage),
+            _code.Escape(edmProperty),
+            _code.SpaceAfter(Accessibility.ForGetter(edmProperty)),
+            _code.SpaceAfter(Accessibility.ForSetter(edmProperty)));
+    }
+
+    public string NavigationProperty(NavigationProperty navProp)
+    {
+        var endType = _typeMapper.GetTypeName(navProp.ToEndMember.GetEntityType());
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1} {2} {{ {3}get; {4}set; }}",
+            AccessibilityAndVirtual(Accessibility.ForNavigationProperty(navProp)),
+            navProp.ToEndMember.RelationshipMultiplicity == RelationshipMultiplicity.Many ? ("ICollection<" + endType + ">") : endType,
+            _code.Escape(navProp),
+            _code.SpaceAfter(Accessibility.ForGetter(navProp)),
+            _code.SpaceAfter(Accessibility.ForSetter(navProp)));
+    }
+
+    public string AccessibilityAndVirtual(string accessibility)
+    {
+        return accessibility + (accessibility != "private" ? " virtual" : "");
+    }
+
+    public string EntityClassOpening(EntityType entity)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1}class {2}Controller : BaseController",
+            Accessibility.ForType(entity),
+            _code.SpaceAfter(_code.AbstractOption(entity)),
+            _code.Escape(entity));
+    }
+
+    public string EnumOpening(SimpleType enumType)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} enum {1} : {2}",
+            Accessibility.ForType(enumType),
+            _code.Escape(enumType),
+            _code.Escape(_typeMapper.UnderlyingClrType(enumType)));
+    }
+
+    public void WriteFunctionParameters(EdmFunction edmFunction, Action<string, string, string, string> writeParameter)
+    {
+        var parameters = FunctionImportParameter.Create(edmFunction.Parameters, _code, _ef);
+        foreach (var parameter in parameters.Where(p => p.NeedsLocalVariable))
+        {
+            var isNotNull = parameter.IsNullableOfT ? parameter.FunctionParameterName + ".HasValue" : parameter.FunctionParameterName + " != null";
+            var notNullInit = "new ObjectParameter(\"" + parameter.EsqlParameterName + "\", " + parameter.FunctionParameterName + ")";
+            var nullInit = "new ObjectParameter(\"" + parameter.EsqlParameterName + "\", typeof(" + TypeMapper.FixNamespaces(parameter.RawClrTypeName) + "))";
+            writeParameter(parameter.LocalVariableName, isNotNull, notNullInit, nullInit);
+        }
+    }
+
+    public string ComposableFunctionMethod(EdmFunction edmFunction, string modelNamespace)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} IQueryable<{1}> {2}({3})",
+            AccessibilityAndVirtual(Accessibility.ForMethod(edmFunction)),
+            _typeMapper.GetTypeName(_typeMapper.GetReturnType(edmFunction), modelNamespace),
+            _code.Escape(edmFunction),
+            string.Join(", ", parameters.Select(p => TypeMapper.FixNamespaces(p.FunctionParameterType) + " " + p.FunctionParameterName).ToArray()));
+    }
+
+    public string ComposableCreateQuery(EdmFunction edmFunction, string modelNamespace)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "return ((IObjectContextAdapter)this).ObjectContext.CreateQuery<{0}>(\"[{1}].[{2}]({3})\"{4});",
+            _typeMapper.GetTypeName(_typeMapper.GetReturnType(edmFunction), modelNamespace),
+            edmFunction.NamespaceName,
+            edmFunction.Name,
+            string.Join(", ", parameters.Select(p => "@" + p.EsqlParameterName).ToArray()),
+            _code.StringBefore(", ", string.Join(", ", parameters.Select(p => p.ExecuteParameterName).ToArray())));
+    }
+
+    public string FunctionMethod(EdmFunction edmFunction, string modelNamespace, bool includeMergeOption)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+        var returnType = _typeMapper.GetReturnType(edmFunction);
+
+        var paramList = String.Join(", ", parameters.Select(p => TypeMapper.FixNamespaces(p.FunctionParameterType) + " " + p.FunctionParameterName).ToArray());
+        if (includeMergeOption)
+        {
+            paramList = _code.StringAfter(paramList, ", ") + "MergeOption mergeOption";
+        }
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1} {2}({3})",
+            AccessibilityAndVirtual(Accessibility.ForMethod(edmFunction)),
+            returnType == null ? "int" : "ObjectResult<" + _typeMapper.GetTypeName(returnType, modelNamespace) + ">",
+            _code.Escape(edmFunction),
+            paramList);
+    }
+
+    public string ExecuteFunction(EdmFunction edmFunction, string modelNamespace, bool includeMergeOption)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+        var returnType = _typeMapper.GetReturnType(edmFunction);
+
+        var callParams = _code.StringBefore(", ", String.Join(", ", parameters.Select(p => p.ExecuteParameterName).ToArray()));
+        if (includeMergeOption)
+        {
+            callParams = ", mergeOption" + callParams;
+        }
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction{0}(\"{1}\"{2});",
+            returnType == null ? "" : "<" + _typeMapper.GetTypeName(returnType, modelNamespace) + ">",
+            edmFunction.Name,
+            callParams);
+    }
+
+    public string DbSet(EntitySet entitySet)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} virtual DbSet<{1}> {2} {{ get; set; }}",
+            Accessibility.ForReadOnlyProperty(entitySet),
+            _typeMapper.GetTypeName(entitySet.ElementType),
+            _code.Escape(entitySet));
+    }
+
+    public string UsingDirectives(bool inHeader, bool includeCollections)
+    {
+        return inHeader == string.IsNullOrEmpty(_code.VsNamespaceSuggestion())
+            ? string.Format(
+                CultureInfo.InvariantCulture,
+                "{0}using System;{1}" +
+                "{2}",
+                inHeader ? Environment.NewLine : "",
+                includeCollections ? (Environment.NewLine + "using System.Collections.Generic;") : "",
+                inHeader ? "" : Environment.NewLine)
+            : "";
+    }
+}
+
+public class TypeMapper
+{
+    private const string ExternalTypeNameAttributeName = @"http://schemas.microsoft.com/ado/2006/04/codegeneration:ExternalTypeName";
+
+    private readonly System.Collections.IList _errors;
+    private readonly CodeGenerationTools _code;
+    private readonly MetadataTools _ef;
+
+    public TypeMapper(CodeGenerationTools code, MetadataTools ef, System.Collections.IList errors)
+    {
+        ArgumentNotNull(code, "code");
+        ArgumentNotNull(ef, "ef");
+        ArgumentNotNull(errors, "errors");
+
+        _code = code;
+        _ef = ef;
+        _errors = errors;
+    }
+
+    public static string FixNamespaces(string typeName)
+    {
+        return typeName.Replace("System.Data.Spatial.", "System.Data.Entity.Spatial.");
+    }
+
+    public string GetTypeName(TypeUsage typeUsage)
+    {
+        return typeUsage == null ? null : GetTypeName(typeUsage.EdmType, _ef.IsNullable(typeUsage), null);
+    }
+
+    public string GetTypeName(EdmType edmType)
+    {
+        return GetTypeName(edmType, null, null);
+    }
+
+    public string GetTypeName(TypeUsage typeUsage, string modelNamespace)
+    {
+        return typeUsage == null ? null : GetTypeName(typeUsage.EdmType, _ef.IsNullable(typeUsage), modelNamespace);
+    }
+
+    public string GetTypeName(EdmType edmType, string modelNamespace)
+    {
+        return GetTypeName(edmType, null, modelNamespace);
+    }
+
+    public string GetTypeName(EdmType edmType, bool? isNullable, string modelNamespace)
+    {
+        if (edmType == null)
+        {
+            return null;
+        }
+
+        var collectionType = edmType as CollectionType;
+        if (collectionType != null)
+        {
+            return String.Format(CultureInfo.InvariantCulture, "ICollection<{0}>", GetTypeName(collectionType.TypeUsage, modelNamespace));
+        }
+
+        var typeName = _code.Escape(edmType.MetadataProperties
+                                .Where(p => p.Name == ExternalTypeNameAttributeName)
+                                .Select(p => (string)p.Value)
+                                .FirstOrDefault())
+            ?? (modelNamespace != null && edmType.NamespaceName != modelNamespace ?
+                _code.CreateFullName(_code.EscapeNamespace(edmType.NamespaceName), _code.Escape(edmType)) :
+                _code.Escape(edmType));
+
+        if (edmType is StructuralType)
+        {
+            return typeName;
+        }
+
+        if (edmType is SimpleType)
+        {
+            var clrType = UnderlyingClrType(edmType);
+            if (!IsEnumType(edmType))
+            {
+                typeName = _code.Escape(clrType);
+            }
+
+            typeName = FixNamespaces(typeName);
+
+            return clrType.IsValueType && isNullable == true ?
+                String.Format(CultureInfo.InvariantCulture, "Nullable<{0}>", typeName) :
+                typeName;
+        }
+
+        throw new ArgumentException("edmType");
+    }
+
+    public Type UnderlyingClrType(EdmType edmType)
+    {
+        ArgumentNotNull(edmType, "edmType");
+
+        var primitiveType = edmType as PrimitiveType;
+        if (primitiveType != null)
+        {
+            return primitiveType.ClrEquivalentType;
+        }
+
+        if (IsEnumType(edmType))
+        {
+            return GetEnumUnderlyingType(edmType).ClrEquivalentType;
+        }
+
+        return typeof(object);
+    }
+
+    public object GetEnumMemberValue(MetadataItem enumMember)
+    {
+        ArgumentNotNull(enumMember, "enumMember");
+
+        var valueProperty = enumMember.GetType().GetProperty("Value");
+        return valueProperty == null ? null : valueProperty.GetValue(enumMember, null);
+    }
+
+    public string GetEnumMemberName(MetadataItem enumMember)
+    {
+        ArgumentNotNull(enumMember, "enumMember");
+
+        var nameProperty = enumMember.GetType().GetProperty("Name");
+        return nameProperty == null ? null : (string)nameProperty.GetValue(enumMember, null);
+    }
+
+    public System.Collections.IEnumerable GetEnumMembers(EdmType enumType)
+    {
+        ArgumentNotNull(enumType, "enumType");
+
+        var membersProperty = enumType.GetType().GetProperty("Members");
+        return membersProperty != null
+            ? (System.Collections.IEnumerable)membersProperty.GetValue(enumType, null)
+            : Enumerable.Empty<MetadataItem>();
+    }
+
+    public bool EnumIsFlags(EdmType enumType)
+    {
+        ArgumentNotNull(enumType, "enumType");
+
+        var isFlagsProperty = enumType.GetType().GetProperty("IsFlags");
+        return isFlagsProperty != null && (bool)isFlagsProperty.GetValue(enumType, null);
+    }
+
+    public bool IsEnumType(GlobalItem edmType)
+    {
+        ArgumentNotNull(edmType, "edmType");
+
+        return edmType.GetType().Name == "EnumType";
+    }
+
+    public PrimitiveType GetEnumUnderlyingType(EdmType enumType)
+    {
+        ArgumentNotNull(enumType, "enumType");
+
+        return (PrimitiveType)enumType.GetType().GetProperty("UnderlyingType").GetValue(enumType, null);
+    }
+
+    public string CreateLiteral(object value)
+    {
+        if (value == null || value.GetType() != typeof(TimeSpan))
+        {
+            return _code.CreateLiteral(value);
+        }
+
+        return string.Format(CultureInfo.InvariantCulture, "new TimeSpan({0})", ((TimeSpan)value).Ticks);
+    }
+
+    public bool VerifyCaseInsensitiveTypeUniqueness(IEnumerable<string> types, string sourceFile)
+    {
+        ArgumentNotNull(types, "types");
+        ArgumentNotNull(sourceFile, "sourceFile");
+
+        var hash = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        if (types.Any(item => !hash.Add(item)))
+        {
+            _errors.Add(
+                new CompilerError(sourceFile, -1, -1, "6023",
+                    String.Format(CultureInfo.CurrentCulture, CodeGenerationTools.GetResourceString("Template_CaseInsensitiveTypeConflict"))));
+            return false;
+        }
+        return true;
+    }
+
+    public IEnumerable<SimpleType> GetEnumItemsToGenerate(IEnumerable<GlobalItem> itemCollection)
+    {
+        return GetItemsToGenerate<SimpleType>(itemCollection)
+            .Where(e => IsEnumType(e));
+    }
+
+    public IEnumerable<T> GetItemsToGenerate<T>(IEnumerable<GlobalItem> itemCollection) where T : EdmType
+    {
+        return itemCollection
+            .OfType<T>()
+            .Where(i => !i.MetadataProperties.Any(p => p.Name == ExternalTypeNameAttributeName))
+            .OrderBy(i => i.Name);
+    }
+
+    public IEnumerable<string> GetAllGlobalItems(IEnumerable<GlobalItem> itemCollection)
+    {
+        return itemCollection
+            .Where(i => i is EntityType || i is ComplexType || i is EntityContainer || IsEnumType(i))
+            .Select(g => GetGlobalItemName(g));
+    }
+
+    public string GetGlobalItemName(GlobalItem item)
+    {
+        if (item is EdmType)
+        {
+            return ((EdmType)item).Name;
+        }
+        else
+        {
+            return ((EntityContainer)item).Name;
+        }
+    }
+
+    public IEnumerable<EdmProperty> GetSimpleProperties(EntityType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetSimpleProperties(ComplexType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetComplexProperties(EntityType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is ComplexType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetComplexProperties(ComplexType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is ComplexType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetPropertiesWithDefaultValues(EntityType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type && p.DefaultValue != null);
+    }
+
+    public IEnumerable<EdmProperty> GetPropertiesWithDefaultValues(ComplexType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type && p.DefaultValue != null);
+    }
+
+    public IEnumerable<NavigationProperty> GetNavigationProperties(EntityType type)
+    {
+        return type.NavigationProperties.Where(np => np.DeclaringType == type);
+    }
+
+    public IEnumerable<NavigationProperty> GetCollectionNavigationProperties(EntityType type)
+    {
+        return type.NavigationProperties.Where(np => np.DeclaringType == type && np.ToEndMember.RelationshipMultiplicity == RelationshipMultiplicity.Many);
+    }
+
+    public FunctionParameter GetReturnParameter(EdmFunction edmFunction)
+    {
+        ArgumentNotNull(edmFunction, "edmFunction");
+
+        var returnParamsProperty = edmFunction.GetType().GetProperty("ReturnParameters");
+        return returnParamsProperty == null
+            ? edmFunction.ReturnParameter
+            : ((IEnumerable<FunctionParameter>)returnParamsProperty.GetValue(edmFunction, null)).FirstOrDefault();
+    }
+
+    public bool IsComposable(EdmFunction edmFunction)
+    {
+        ArgumentNotNull(edmFunction, "edmFunction");
+
+        var isComposableProperty = edmFunction.GetType().GetProperty("IsComposableAttribute");
+        return isComposableProperty != null && (bool)isComposableProperty.GetValue(edmFunction, null);
+    }
+
+    public IEnumerable<FunctionImportParameter> GetParameters(EdmFunction edmFunction)
+    {
+        return FunctionImportParameter.Create(edmFunction.Parameters, _code, _ef);
+    }
+
+    public TypeUsage GetReturnType(EdmFunction edmFunction)
+    {
+        var returnParam = GetReturnParameter(edmFunction);
+        return returnParam == null ? null : _ef.GetElementType(returnParam.TypeUsage);
+    }
+
+    public bool GenerateMergeOptionFunction(EdmFunction edmFunction, bool includeMergeOption)
+    {
+        var returnType = GetReturnType(edmFunction);
+        return !includeMergeOption && returnType != null && returnType.EdmType.BuiltInTypeKind == BuiltInTypeKind.EntityType;
+    }
+}
+#>

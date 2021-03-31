@@ -1,0 +1,39 @@
+.slider-gallery {
+  position: relative;
+  width: 100%; }
+  .slider-gallery .gallery-wrap {
+    width: 95%;
+    margin: auto; }
+  .slider-gallery img {
+    width: 90%;
+    height: 250px;
+    -o-object-fit: cover;
+    object-fit: cover;
+    margin: auto; }
+  .slider-gallery .slick-next {
+    right: -15px;
+    z-index: 5;
+    background: none;
+    position: absolute;
+    border: none;
+    top: 50%;
+    font-size: 0rem; }
+  .slider-gallery .slick-next:before {
+    content: url("/static/img/icons/arrow-rig.svg");
+    color: #000000;
+    font-size: 1.5rem; }
+  .slider-gallery .slick-prev {
+    left: -15px;
+    z-index: 5;
+    background: none;
+    position: absolute;
+    border: none;
+    top: 50%;
+    font-size: 0rem;
+    -webkit-transform: rotate(180deg);
+    -ms-transform: rotate(180deg);
+    transform: rotate(180deg); }
+  .slider-gallery .slick-prev:before {
+    content: url("/static/img/icons/arrow-rig.svg");
+    color: #000000;
+    font-size: 1.5rem; }

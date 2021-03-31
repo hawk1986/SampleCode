@@ -1,0 +1,8 @@
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\bin\Release\ResourceLibrary.dll
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\bin\Release\ResourceLibrary.pdb
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Release\ResourceLibrary.csprojAssemblyReference.cache
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Release\ResourceLibrary.Resource.resources
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Release\ResourceLibrary.csproj.GenerateResource.cache
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Release\ResourceLibrary.csproj.CoreCompileInputs.cache
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Release\ResourceLibrary.dll
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Release\ResourceLibrary.pdb

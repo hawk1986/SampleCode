@@ -1,0 +1,80 @@
+﻿@model ValidateUserViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@Resource.SystemName - @Resource.SignIn</title>
+    @Styles.Render("~/Content/login")
+    <!--[if lt IE 9]>
+    <script src="@Url.Content("~/Scripts/html5shiv.min.js")"></script>
+    <script src="@Url.Content("~/Scripts/respond.min.js")"></script>
+    <![endif]-->
+</head>
+<body style="background-image: url('/Content/static/img/Group.svg');">
+    <div class="middle-box text-center loginscreen animated fadeInDown">
+        <div>
+            <div>
+                @*<h1 class="logo-name">@Resource.Organization</h1>*@
+                <h1 class="logo-name">
+                    <img src="/Content/static/img/dentsu logo_black.png" width="100%">
+                </h1>
+            </div>
+            <h3>@Resource.SystemName</h3>
+            @using (Html.BeginForm())
+            {
+                @Html.AntiForgeryToken()
+                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                <input type="hidden" id="CaptchaID" name="CaptchaID" value="@Model.CaptchaID" />
+                <div class="form-group">
+                    @Html.EditorFor(model => model.Account, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.PlaceHolderForAccount } })
+                    @Html.ValidationMessageFor(model => model.Account, "", new { @class = "text-danger" })
+                </div>
+                <div class="form-group">
+                    @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.PlaceHolderForPassword } })
+                    @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                </div>
+                <div class="form-group">
+                    @Html.EditorFor(model => model.CaptchaCode, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.PlaceHolderForCaptchaCode, autocomplete="off" } })
+                    @Html.ValidationMessageFor(model => model.CaptchaCode, "", new { @class = "text-danger" })
+                    <div>
+                        <img id="imgCaptcha" src="data:image/jpeg;base64, @Model.CaptchaData" />
+                        <button id="btnRefreshCaptcha" type="button" class="btn btn-default"><i class="fa fa-refresh"></i></button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary block full-width m-b">@Resource.SignIn</button>
+            }
+            @Html.ActionLink(Resource.ForgotPassword, "ForgotPassword", "Account")
+            <p class="m-t"> <small>NET &copy; 2020</small> </p>
+        </div>
+    </div>
+    @Html.Partial("_SystemMessage")
+    @Scripts.Render("~/bundles/login")
+    <script>
+        window.history.forward(1);
+        $(function () {
+            message = '@Html.Raw(TempData["ErrorMsg"])';
+            if (message != '') {
+                displayMessage();
+            }
+            $("#btnRefreshCaptcha").click(function () {
+                $.ajax({
+                    type: 'Get',
+                    url: '/api/captcha',
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data) {
+                            $('#imgCaptcha').attr("src", "data:image/jpeg;base64, " + data.Data);
+                            $('#CaptchaID').val(data.ID);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

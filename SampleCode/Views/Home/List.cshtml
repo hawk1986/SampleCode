@@ -1,0 +1,143 @@
+﻿
+@{
+    ViewBag.Title = "List";
+}
+@section scripts
+{
+    <script>
+        var data = [{
+            "name": "bootstrap-table",
+            "stargazers_count": "10",
+            "forks_count": "122",
+            "description": "An extended Bootstrap table"
+        }, {
+            "name": "multiple-select",
+            "stargazers_count": "288",
+            "forks_count": "20",
+            "description": "A jQuery plugin to select multiple elements with checkboxes :)"
+        }, {
+            "name": "bootstrap-table",
+            "stargazers_count": "32",
+            "forks_count": "11",
+            "description": "Show/hide password plugin for twitter bootstrap."
+        }, {
+            "name": "bootstrap-table",
+            "stargazers_count": "1",
+            "forks_count": "4",
+            "description": "my blog"
+        }, {
+            "name": "scutech-redmine 1",
+            "stargazers_count": "50",
+            "forks_count": "3",
+            "description": "Redmine notification tools for chrome extension."
+        }];
+        var table = null;
+        $(function () {
+            table = $('#table').bootstrapTable({
+                data: data,
+                classes: 'table table-hover table-condensed',
+                //method: 'post',
+                pagination: true,
+                reorderableColumns: true,
+                striped: true,
+                //sidePagination: 'server',
+                sortOrder: 'desc',
+                showColumns: true,
+                showRefresh: true,
+                clickToSelect: true,
+                resizable: true,
+                onResizableResize: function () { console.log(table.columns); },
+                onReorderColumn: function (headerFields) { console.log(this.columns); console.log(headerFields); }
+            });
+
+            $(".mybtn-top").click(function () {
+                $('#table').bootstrapTable('scrollTo', 0);
+            });
+
+            $(".mybtn-row").click(function () {
+                var index = +$('.row-index').val(),
+                    top = 0;
+                $('#table').find('tbody tr').each(function (i) {
+                    if (i < index) {
+                        top += $(this).height();
+                    }
+                });
+                $('#table').bootstrapTable('scrollTo', top);
+            });
+
+            $(".mybtn-btm").click(function () {
+                $('#table').bootstrapTable('scrollTo', 'bottom');
+            });
+
+        });
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-10">
+        <h2>Basic Form</h2>
+        <ol class="breadcrumb">
+            <li>
+                <a href="index.html">Home</a>
+            </li>
+            <li>
+                <a>Forms</a>
+            </li>
+            <li class="active">
+                <strong>Basic Form</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-2">
+
+    </div>
+</div>
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5>All form elements <small>With custom checbox and radion elements.</small></h5>
+                    <div class="ibox-tools">
+                        <a class="collapse-link">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                            <i class="fa fa-wrench"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-user">
+                            <li>
+                                <a href="#">Config option 1</a>
+                            </li>
+                            <li>
+                                <a href="#">Config option 2</a>
+                            </li>
+                        </ul>
+                        <a class="close-link">
+                            <i class="fa fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="ibox-content">
+                    <div id="toolbar">
+                        <a href="#" id="create" class="btn btn-primary">
+                            <i class="fa fa-plus" aria-hidden="true"></i> Create
+                        </a>
+                        <button id="remove" class="btn btn-danger" disabled>
+                            <i class="fa fa-times" aria-hidden="true"></i> Delete
+                        </button>
+                    </div>
+                    <table id="table" class="table" data-toolbar="#toolbar" data-search="true" data-show-columns="true" data-pagination="true">
+                        <thead>
+                            <tr>
+                                <th data-field="stargazers_count" data-sortable="true">Stars</th>
+                                <th data-field="name" data-sortable="true">Name</th>
+                                <th data-field="forks_count" data-sortable="true">Forks</th>
+                                <th data-field="description" data-sortable="true">Description</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,43 +1,119 @@
-﻿<!DOCTYPE html>
+﻿@using StackExchange.Profiling;
+@{
+    var collapse =
+        Request.Cookies["SideBarCollapse"] != null &&
+        bool.TryParse(Request.Cookies["SideBarCollapse"].Value, out bool side) &&
+        side ? "mini-navbar" : string.Empty;
+
+    var action = ViewContext.RouteData.Values["action"] as string;
+    if (action.StartsWith("Index"))
+    {
+        action = "Index";
+    }
+    else
+    {
+        switch (action)
+        {
+            case "Details":
+            case "Create":
+            case "Edit":
+                action = "Index";
+                break;
+            default:
+                break;
+        }
+    }
+    var user = UnobtrusiveSession.Session["User"] as UserViewModel;
+}
+<!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewBag.Title - 我的 ASP.NET 應用程式</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@Resource.SystemName - @ViewBag.Title</title>
     @Styles.Render("~/Content/css")
-    @Scripts.Render("~/bundles/modernizr")
+    <!--[if lt IE 9]>
+    <script src="@Url.Content("~/Scripts/html5shiv.min.js")"></script>
+    <script src="@Url.Content("~/Scripts/respond.min.js")"></script>
+    <![endif]-->
+    <link href="~/Content/static/css/main.css" rel="stylesheet">
 </head>
-<body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                @Html.ActionLink("應用程式名稱", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
-            </div>
-            <div class="navbar-collapse collapse">
-                <ul class="nav navbar-nav">
-                    <li>@Html.ActionLink("首頁", "Index", "Home")</li>
-                    <li>@Html.ActionLink("關於", "About", "Home")</li>
-                    <li>@Html.ActionLink("連絡人", "Contact", "Home")</li>
-                </ul>
-            </div>
+<body class="body-small @collapse">
+    <div id="wrapper">
+        @Html.Partial("_Navbar", user)
+        <div id="page-wrapper" style="background-image: url('/Content/static/img/Group.svg');">
+            @Html.Partial("_Header")
+            @RenderBody()
+            @Html.Partial("_Footer")
         </div>
     </div>
-    <div class="container body-content">
-        @RenderBody()
-        <hr />
-        <footer>
-            <p>&copy; @DateTime.Now.Year - 我的 ASP.NET 應用程式</p>
-        </footer>
-    </div>
+    @Html.Partial("_SystemMessage")
+    @Scripts.Render("~/bundles/script")
+    <script>
+        $(function () {
+            // 如果有訊息則顯示
+            message = '@Html.Raw(TempData["ErrorMsg"])';
+            if (message != '') {
+                displayMessage();
+            }
+            var menu = '@string.Concat(action, "_", ViewContext.RouteData.Values["controller"])';
+            $('#' + menu).parent('li').addClass('active').parent('ul').addClass('in').parent('li').addClass('active');
+            $('a.navbar-minimalize').click(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("SideBarCollapse", "Common")',
+                    data: { collapse: $('body').hasClass('mini-navbar') },
+                    dataType: 'json',
+                    success: function (data) { },
+                    error: function (data, error) { }
+                });
+            });
 
-    @Scripts.Render("~/bundles/jquery")
-    @Scripts.Render("~/bundles/bootstrap")
+            // 滑鼠鍵盤事件偵測
+            $('body').mouseover(function () {
+                ResetTimeOut();
+            });
+            $('body').keydown(function () {
+                ResetTimeOut();
+            });
+            DisplaySessionTimeout();
+        });
+
+        // 預設 session 時間
+        var sessionFirstTimeout = @Tools.GetConfigValue("SystemTimeout", 60) * 60;
+        var sessionTimeout = sessionFirstTimeout;
+
+        function ResetTimeOut() {
+            if (sessionTimeout <= 180) {
+                $('#messageModal').modal('hide');
+            }
+            sessionTimeout = sessionFirstTimeout;
+        }
+
+        function DisplaySessionTimeout() {
+            sessionTimeout--;
+            if (sessionTimeout <= 180) {
+                message = '{ "Style": "danger", "Message": "' + Math.floor(sessionTimeout / 60) + ' @Resource.Minute ' + (sessionTimeout % 60) + ' @Resource.SecondsLogout"}';
+                displayMessage();
+            }
+            if (sessionTimeout > 0)
+                window.setTimeout("DisplaySessionTimeout()", 1000);
+            else {
+                location.href = '@Url.Action("Logout", "Account")';
+            }
+        }
+
+        // 防止 TimeOut
+        setInterval(function () {
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("TimeoutNever", "Home")',
+                dataType: 'html'
+            });
+        }, 60000);
+    </script>
     @RenderSection("scripts", required: false)
+    @MiniProfiler.RenderIncludes()
 </body>
 </html>

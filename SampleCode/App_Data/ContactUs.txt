@@ -1,0 +1,24 @@
+﻿<table width="700" align="center" cellspacing="20" style="border:1px solid #eee;">
+	<tr>
+    <td style="border-bottom:2px solid #4560ad;padding:0 0 20px;">LOGO</td>
+    </tr>
+    <tr>
+    <td style="padding:20px;border-bottom:2px solid #4560ad"><p style="color:#4560ad">聯絡我們</p>
+      <p>分類:<br />{0}</p>
+      <p>姓名:<br />{1}</p>
+      <p>電話:<br />{2}</p>
+      <p>電子郵件:  <br />{3}</p>
+      <p>持有卡別:<br />{4}</p>
+      <p>會員卡號:<br />{5}</p>
+      <p>主旨:<br />{6}</p>
+      <p>內容:<br />{7}</p>
+      
+      <p>PRS_New管理系統管理員 敬上</p>
+      <p>&nbsp;</p></td>
+    </tr>
+    <tr>
+    <td style="padding:10px 0; text-align:center;font-size:13px; color:#999">
+    PRS_New管理處<br />
+    <a href="https://www.template.com.tw/" target="_blank" style="font-size:13px; color:#999">https://www.template.com.tw/</a></td>
+    </tr>
+</table>

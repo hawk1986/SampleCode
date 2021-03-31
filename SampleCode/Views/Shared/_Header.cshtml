@@ -1,0 +1,16 @@
+﻿<div class="row border-bottom">
+    <nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0; background-image: url('/Content/static/img/Group.svg');">
+        <div class="navbar-header"  >
+            <a class="navbar-minimalize minimalize-styl-2 btn btn-menu " href="#"><i class="fa fa-bars"></i> </a>
+            <h1 class="logo"><img src="~/Content/static/img/dentsu logo_black.png" /></h1>
+            @*<h1 class="logo"><img src="~/Content/static/img/logo.svg" /></h1>*@
+        </div>
+        <ul class="navbar-top-links logout">
+            <li>
+                <a href="@Url.Action("Logout", "Account")">
+                    <i class="fa fa-sign-out"></i> <b>@Resource.Logout</b>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>

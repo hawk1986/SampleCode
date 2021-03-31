@@ -1,0 +1,967 @@
+﻿<#@ template debug="true" hostSpecific="true" #>
+<#@ output extension=".cs" encoding="utf-8" #>
+<#@ include file="EF6.Utility.CS.ttinclude" #>
+<#@ Assembly Name="System.Core" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#
+var ignoreFileName = "tt-ignore.txt";
+var directory = GetCurrentDirectory();
+var path = Path.Combine(directory.Replace("\\Views", ""), ignoreFileName);
+string line;
+var file = new StreamReader(path);
+var ignoreList = new List<string>();
+if ((line = file.ReadLine()) != null)
+{
+    ignoreList = line.Split(',').ToList();
+}
+file.Close();
+string inputFile = FindEDMXFileName();
+var textTransform = DynamicTextTransformation.Create(this);
+var code = new CodeGenerationTools(this);
+var ef = new MetadataTools(this);
+var typeMapper = new TypeMapper(code, ef, textTransform.Errors);
+var fileManager = EntityFrameworkTemplateFileManager.Create(this);
+var itemCollection = new EdmMetadataLoader(textTransform.Host, textTransform.Errors).CreateEdmItemCollection(inputFile);
+var codeStringGenerator = new CodeStringGenerator(code, typeMapper, ef);
+foreach (var entity in typeMapper.GetItemsToGenerate<EntityType>(itemCollection).OrderBy(e => e.Name))
+{
+    var simpleProperties = typeMapper.GetSimpleProperties(entity);
+    if (!simpleProperties.Any(x => code.Escape(x) == "ID") || ignoreList.Contains(entity.Name))
+    {
+        continue;
+    }
+
+    if(!Directory.Exists(GetCurrentDirectory() + "\\" + entity.Name))
+    {
+        Directory.CreateDirectory(GetCurrentDirectory() + "\\" + entity.Name);
+    }
+    var fileName = entity.Name + "\\Index.cshtml";
+    if(!DoesFileExist(fileName))
+    {
+        fileManager.StartNewFile(fileName);
+#>
+@model <#= entity.Name #>SearchModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var function = auth.First(x => x.Code == "<#= entity.Name #>Index");
+    var details = auth.Any(x => x.Code == "<#= entity.Name #>Details");
+    var create = auth.Any(x => x.Code == "<#= entity.Name #>Create");
+    var edit = auth.Any(x => x.Code == "<#= entity.Name #>Edit");
+    var delete = auth.Any(x => x.Code == "<#= entity.Name #>Delete");
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/table")
+    <script src="~/Scripts/table-init.js"></script>
+    <script>
+		//formatter
+        @if (Model.Formatter != null)
+        {
+            foreach (var fmt in Model.Formatter)
+            {
+                @Html.Raw("function ")
+                @Html.Raw(fmt.Key)
+                @Html.Raw("(value,row,index){if(null!==value){switch(value){")
+                foreach (var item in fmt.Value)
+                {
+                    @Html.Raw(string.Format("case '{0}': return '{1}';", item.Value, item.Text))
+                }
+                @Html.Raw("}}}")
+                @System.Environment.NewLine
+            }
+        }
+        // set column function
+        function setColumn() {
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("SetColumn", "Common")',
+                data: { functionName: '<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>', data: this.columns[0] },
+                dataType: 'json',
+                success: function (data) { },
+                error: function (data, error) { }
+            });
+        }
+
+        // Init
+        $(function () {
+            // init page event
+            var initOptions = {
+                detailsUrl: '@Url.Action("Details")',
+                editUrl: '@Url.Action("Edit")',
+                deleteUrl: '@Url.Action("Delete")',
+                pagingUrl: '@Url.Action("Paging")',
+                getColumnUrl: '@Url.Action("GetColumn", "Common")',
+                functionName: '<#= entity.Name.Substring(0, 1).ToLower() + entity.Name.Substring(1) #>',
+                detailsBtn: '@details' == 'True',
+                editBtn: '@edit' == 'True',
+                deleteBtn: '@delete' == 'True',
+                confirmMessage: '@string.Format(@Resource.ExecutionConfirm, @Resource.Delete, @Resource.<#= entity.Name #>)',
+                successMessage: '@string.Format(@Resource.ExecutionCompleted, @Resource.Delete, @Resource.<#= entity.Name #>)',
+                errorMessage: '@string.Format(@Resource.ExecutionFailed, @Resource.Delete, @Resource.<#= entity.Name #>)',
+                systemErrorMessage: '@Resource.SystemError',
+                onReorderColumn: setColumn,
+                onColumnSwitch: setColumn
+            };
+            // init page event
+            InitBasicEvent(initOptions);
+        });
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div class="row">
+                        <form class="form-horizontal" id="search_form">
+                            @Html.LabelFor(model => model.Search, htmlAttributes: new { @class = "control-label col-sm-1" })
+                            <div class="col-sm-2 m-b-xs">
+                                @Html.EditorFor(model => model.Search, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.Keyword } })
+                            </div>
+<#
+        simpleProperties = typeMapper.GetSimpleProperties(entity);
+        if (simpleProperties.Any(x => code.Escape(x) == "IsEnable"))
+        {
+#>
+                            @Html.LabelFor(model => model.IsEnable, htmlAttributes: new { @class = "control-label col-sm-1" })
+                            <div class="col-sm-2 m-b-xs">
+                                @Html.DropDownListFor(model => model.IsEnable, Model.YesNoList, string.Format(Resource.PleaseSelect, Resource.Status), new { @class = "form-control selectpicker" })
+                            </div>
+<#
+        }
+#>
+                            <div class="col-sm-6">
+                                <button type="submit" id="search_form_submit" class="btn btn-primary"><i class="fa fa-search"></i> @Resource.Search</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div id="toolbar">
+                        @if (create)
+                        {
+                            <a href="@Url.Action("Create")" id="create" class="btn btn-primary">
+                                <i class="fa fa-plus" aria-hidden="true"></i> @Resource.Create
+                            </a>
+                        }
+                        @if (details)
+                        {
+                            <button id="details_btn" class="btn btn-info disabled">
+                                <i class="fa fa-eye" aria-hidden="true"></i> @Resource.Details
+                            </button>
+                        }
+                        @if (edit)
+                        {
+                            <button id="edit_btn" class="btn btn-success disabled">
+                                <i class="fa fa-pencil" aria-hidden="true"></i> @Resource.Edit
+                            </button>
+                        }
+                        @if (delete)
+                        {
+                            <button id="delete_btn" class="btn btn-danger disabled">
+                                <i class="fa fa-times" aria-hidden="true"></i> @Resource.Delete
+                            </button>
+                        }
+                    </div>
+                    <table id="eventsTable" data-toolbar="#toolbar" data-sort-name="SequenceNo" data-row-style="rowStyle"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<#
+    }
+    else
+    {
+        fileManager.StartNewFile(fileName);
+        this.Write(OutputFile(fileName));
+    }
+}
+foreach (var entity in typeMapper.GetItemsToGenerate<EntityType>(itemCollection).OrderBy(e => e.Name))
+{
+    var simpleProperties = typeMapper.GetSimpleProperties(entity);
+    if (!simpleProperties.Any(x => code.Escape(x) == "ID") || ignoreList.Contains(entity.Name))
+    {
+        continue;
+    }
+
+    if(!Directory.Exists(GetCurrentDirectory() + "\\" + entity.Name))
+    {
+        Directory.CreateDirectory(GetCurrentDirectory() + "\\" + entity.Name);
+    }
+    var fileName = entity.Name + "\\Create.cshtml";
+    if(!DoesFileExist(fileName))
+    {
+        fileManager.StartNewFile(fileName);
+#>
+@model <#= entity.Name #>ViewModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var action = ViewContext.RouteData.Values["action"] as string;
+    var function = auth.First(x => x.Code == "<#= entity.Name #>" + action);
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    @using (Html.BeginForm(action, "<#= entity.Name #>", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "create_form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+<#
+        simpleProperties = typeMapper.GetSimpleProperties(entity);
+        if (simpleProperties.Any())
+        {
+            if (simpleProperties.Any(x => code.Escape(x) == "Code"))
+            {
+#>
+                        @Html.Hidden("Initial", Model.Code)
+<#
+            }
+            foreach (var edmProperty in simpleProperties)
+            {
+                if (code.Escape(edmProperty) == "ID" || code.Escape(edmProperty) == "SequenceNo")
+                {
+#>
+                        @Html.HiddenFor(model => model.<#= code.Escape(edmProperty) #>)
+<#
+                }
+                else if (typeMapper.GetTypeName(edmProperty.TypeUsage) == "bool")
+                {
+#>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.<#= code.Escape(edmProperty) #>, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                <div class="checkbox">
+                                    <label>
+                                        @Html.EditorFor(model => model.<#= code.Escape(edmProperty) #>)
+                                    </label>
+                                    @Html.ValidationMessageFor(model => model.<#= code.Escape(edmProperty) #>, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        </div>
+<#
+                }
+                else if (typeMapper.GetTypeName(edmProperty.TypeUsage) == "System.Guid")
+                {
+#>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.<#= code.Escape(edmProperty) #>, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.<#= code.Escape(edmProperty) #>, Model.<#= code.Escape(edmProperty).Replace("ID", "") #>List, string.Format(Resource.PleaseSelect, Resource.<#= code.Escape(edmProperty).Replace("ID", "") #>), new { @class = "form-control selectpicker" })
+                                @Html.ValidationMessageFor(model => model.<#= code.Escape(edmProperty) #>, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+<#
+                }
+                else if (code.Escape(edmProperty) != "FreeFields")
+                {
+#>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.<#= code.Escape(edmProperty) #>, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.<#= code.Escape(edmProperty) #>, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.<#= code.Escape(edmProperty) #>, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+<#
+                }
+            }
+        }
+#>
+                        <div class="form-group">
+                            <div class="col-sm-offset-2 col-sm-10">
+                                <button type="submit" id="form_submit" class="btn btn-primary"><i class="fa fa-plus"></i> @Resource.Save</button>
+                                <button type="reset" class="btn btn-default"><i class="fa fa-eraser"></i> @Resource.Reset</button>
+                                <a id="exit_btn" href="@Url.Action("Index")" class="btn btn-danger"><i class="fa fa-sign-out"></i> @Resource.Exit</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<#
+    }
+    else
+    {
+        fileManager.StartNewFile(fileName);
+        this.Write(OutputFile(fileName));
+    }
+}
+foreach (var entity in typeMapper.GetItemsToGenerate<EntityType>(itemCollection).OrderBy(e => e.Name))
+{
+    var simpleProperties = typeMapper.GetSimpleProperties(entity);
+    if (!simpleProperties.Any(x => code.Escape(x) == "ID") || ignoreList.Contains(entity.Name))
+    {
+        continue;
+    }
+
+    if(!Directory.Exists(GetCurrentDirectory() + "\\" + entity.Name))
+    {
+        Directory.CreateDirectory(GetCurrentDirectory() + "\\" + entity.Name);
+    }
+    var fileName = entity.Name + "\\Details.cshtml";
+    if(!DoesFileExist(fileName))
+    {
+        fileManager.StartNewFile(fileName);
+#>
+@model <#= entity.Name #>ViewModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var action = ViewContext.RouteData.Values["action"] as string;
+    var function = auth.First(x => x.Code == "<#= entity.Name #>" + action);
+    var edit = auth.Any(x => x.Code == "<#= entity.Name #>Edit");
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div class="form-horizontal" role="form">
+<#
+        simpleProperties = typeMapper.GetSimpleProperties(entity);
+        if (simpleProperties.Any())
+        {
+            foreach (var edmProperty in simpleProperties)
+            {
+                if (code.Escape(edmProperty) == "ID" || code.Escape(edmProperty) == "SequenceNo")
+                {
+                }
+                else if (typeMapper.GetTypeName(edmProperty.TypeUsage) == "bool")
+                {
+#>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.<#= code.Escape(edmProperty) #>, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                <div class="checkbox">
+                                    <label>
+                                        @Html.EditorFor(model => model.<#= code.Escape(edmProperty) #>, new { htmlAttributes = new { disabled = "disabled" } })
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+<#
+                }
+                else if (typeMapper.GetTypeName(edmProperty.TypeUsage) == "System.Guid")
+                {
+#>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.<#= code.Escape(edmProperty) #>, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.<#= code.Escape(edmProperty) #>, Model.<#= code.Escape(edmProperty).Replace("ID", "") #>List, string.Format(Resource.PleaseSelect, Resource.<#= code.Escape(edmProperty).Replace("ID", "") #>), new { @class = "form-control selectpicker", disabled = "disabled" })
+                            </div>
+                        </div>
+<#
+                }
+                else if (code.Escape(edmProperty) != "FreeFields")
+                {
+#>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.<#= code.Escape(edmProperty) #>, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.<#= code.Escape(edmProperty) #>, new { htmlAttributes = new { @class = "form-control", disabled = "disabled" } })
+                            </div>
+                        </div>
+<#
+                }
+            }
+        }
+#>
+                        <div class="form-group">
+                            <div class="col-sm-offset-2 col-sm-10">
+                                @if (edit)
+                                {
+                                    <a id="edit_btn" href="@Url.Action("Edit", "<#= entity.Name #>", new { id = Model.ID })" class="btn btn-success"><i class="fa fa-pencil"></i> @Resource.Edit</a>
+                                }
+                                <a id="exit_btn" href="@Url.Action("Index")" class="btn btn-danger"><i class="fa fa-sign-out"></i> @Resource.Exit</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<#
+    }
+    else
+    {
+        fileManager.StartNewFile(fileName);
+        this.Write(OutputFile(fileName));
+    }
+}
+fileManager.Process(); #>
+<#+
+public static void ArgumentNotNull<T>(T arg, string name) where T : class
+{
+    if (arg == null)
+    {
+        throw new ArgumentNullException(name);
+    }
+}
+
+bool DoesFileExist(string filename)
+{
+    return File.Exists(Path.Combine(GetCurrentDirectory(), filename));
+}
+
+string FindEDMXFileName()
+{
+    string edmxFile = "";
+    string directory = GetCurrentDirectory();
+    string[] entityFrameworkFiles = Directory.GetFiles(directory.Replace("\\Views", "\\Models"), "*.edmx");
+    if (entityFrameworkFiles.Length > 0)
+        edmxFile = entityFrameworkFiles[0];
+
+    return edmxFile;
+}
+
+string GetCurrentDirectory()
+{
+    string executingDirectoryName = "";
+    string stackTraceFileName = new StackTrace(true).GetFrame(0).GetFileName();
+    if (String.IsNullOrEmpty(stackTraceFileName))
+    {
+        throw new ArgumentException("No value was specified for the 'directoryName' configuration parameter" +
+            ", and we could not figure out the file name from the stack trace (most likely because of running " +
+            "the template with debug='False' specified in the <\u0023@ template \u0023> directive.");
+    }
+    else
+    {
+        executingDirectoryName = Path.GetDirectoryName(stackTraceFileName);
+    }
+    return executingDirectoryName;
+}
+
+string OutputFile(string filename)
+{
+    using (StreamReader sr = new StreamReader(Path.Combine(GetCurrentDirectory(), filename)))
+    {
+        string contents = sr.ReadToEnd();
+        return contents;
+    }
+}
+
+public class CodeStringGenerator
+{
+    private readonly CodeGenerationTools _code;
+    private readonly TypeMapper _typeMapper;
+    private readonly MetadataTools _ef;
+
+    public CodeStringGenerator(CodeGenerationTools code, TypeMapper typeMapper, MetadataTools ef)
+    {
+        ArgumentNotNull(code, "code");
+        ArgumentNotNull(typeMapper, "typeMapper");
+        ArgumentNotNull(ef, "ef");
+
+        _code = code;
+        _typeMapper = typeMapper;
+        _ef = ef;
+    }
+
+    public string Property(EdmProperty edmProperty)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1} {2} {{ {3}get; {4}set; }}",
+            Accessibility.ForProperty(edmProperty),
+            _typeMapper.GetTypeName(edmProperty.TypeUsage),
+            _code.Escape(edmProperty),
+            _code.SpaceAfter(Accessibility.ForGetter(edmProperty)),
+            _code.SpaceAfter(Accessibility.ForSetter(edmProperty)));
+    }
+
+    public string NavigationProperty(NavigationProperty navProp)
+    {
+        var endType = _typeMapper.GetTypeName(navProp.ToEndMember.GetEntityType());
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1} {2} {{ {3}get; {4}set; }}",
+            AccessibilityAndVirtual(Accessibility.ForNavigationProperty(navProp)),
+            navProp.ToEndMember.RelationshipMultiplicity == RelationshipMultiplicity.Many ? ("ICollection<" + endType + ">") : endType,
+            _code.Escape(navProp),
+            _code.SpaceAfter(Accessibility.ForGetter(navProp)),
+            _code.SpaceAfter(Accessibility.ForSetter(navProp)));
+    }
+
+    public string AccessibilityAndVirtual(string accessibility)
+    {
+        return accessibility + (accessibility != "private" ? " virtual" : "");
+    }
+
+    public string EntityClassOpening(EntityType entity)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1}class {2}Controller : BaseController",
+            Accessibility.ForType(entity),
+            _code.SpaceAfter(_code.AbstractOption(entity)),
+            _code.Escape(entity));
+    }
+
+    public string EnumOpening(SimpleType enumType)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} enum {1} : {2}",
+            Accessibility.ForType(enumType),
+            _code.Escape(enumType),
+            _code.Escape(_typeMapper.UnderlyingClrType(enumType)));
+    }
+
+    public void WriteFunctionParameters(EdmFunction edmFunction, Action<string, string, string, string> writeParameter)
+    {
+        var parameters = FunctionImportParameter.Create(edmFunction.Parameters, _code, _ef);
+        foreach (var parameter in parameters.Where(p => p.NeedsLocalVariable))
+        {
+            var isNotNull = parameter.IsNullableOfT ? parameter.FunctionParameterName + ".HasValue" : parameter.FunctionParameterName + " != null";
+            var notNullInit = "new ObjectParameter(\"" + parameter.EsqlParameterName + "\", " + parameter.FunctionParameterName + ")";
+            var nullInit = "new ObjectParameter(\"" + parameter.EsqlParameterName + "\", typeof(" + TypeMapper.FixNamespaces(parameter.RawClrTypeName) + "))";
+            writeParameter(parameter.LocalVariableName, isNotNull, notNullInit, nullInit);
+        }
+    }
+
+    public string ComposableFunctionMethod(EdmFunction edmFunction, string modelNamespace)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} IQueryable<{1}> {2}({3})",
+            AccessibilityAndVirtual(Accessibility.ForMethod(edmFunction)),
+            _typeMapper.GetTypeName(_typeMapper.GetReturnType(edmFunction), modelNamespace),
+            _code.Escape(edmFunction),
+            string.Join(", ", parameters.Select(p => TypeMapper.FixNamespaces(p.FunctionParameterType) + " " + p.FunctionParameterName).ToArray()));
+    }
+
+    public string ComposableCreateQuery(EdmFunction edmFunction, string modelNamespace)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "return ((IObjectContextAdapter)this).ObjectContext.CreateQuery<{0}>(\"[{1}].[{2}]({3})\"{4});",
+            _typeMapper.GetTypeName(_typeMapper.GetReturnType(edmFunction), modelNamespace),
+            edmFunction.NamespaceName,
+            edmFunction.Name,
+            string.Join(", ", parameters.Select(p => "@" + p.EsqlParameterName).ToArray()),
+            _code.StringBefore(", ", string.Join(", ", parameters.Select(p => p.ExecuteParameterName).ToArray())));
+    }
+
+    public string FunctionMethod(EdmFunction edmFunction, string modelNamespace, bool includeMergeOption)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+        var returnType = _typeMapper.GetReturnType(edmFunction);
+
+        var paramList = String.Join(", ", parameters.Select(p => TypeMapper.FixNamespaces(p.FunctionParameterType) + " " + p.FunctionParameterName).ToArray());
+        if (includeMergeOption)
+        {
+            paramList = _code.StringAfter(paramList, ", ") + "MergeOption mergeOption";
+        }
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} {1} {2}({3})",
+            AccessibilityAndVirtual(Accessibility.ForMethod(edmFunction)),
+            returnType == null ? "int" : "ObjectResult<" + _typeMapper.GetTypeName(returnType, modelNamespace) + ">",
+            _code.Escape(edmFunction),
+            paramList);
+    }
+
+    public string ExecuteFunction(EdmFunction edmFunction, string modelNamespace, bool includeMergeOption)
+    {
+        var parameters = _typeMapper.GetParameters(edmFunction);
+        var returnType = _typeMapper.GetReturnType(edmFunction);
+
+        var callParams = _code.StringBefore(", ", String.Join(", ", parameters.Select(p => p.ExecuteParameterName).ToArray()));
+        if (includeMergeOption)
+        {
+            callParams = ", mergeOption" + callParams;
+        }
+
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction{0}(\"{1}\"{2});",
+            returnType == null ? "" : "<" + _typeMapper.GetTypeName(returnType, modelNamespace) + ">",
+            edmFunction.Name,
+            callParams);
+    }
+
+    public string DbSet(EntitySet entitySet)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "{0} virtual DbSet<{1}> {2} {{ get; set; }}",
+            Accessibility.ForReadOnlyProperty(entitySet),
+            _typeMapper.GetTypeName(entitySet.ElementType),
+            _code.Escape(entitySet));
+    }
+
+    public string UsingDirectives(bool inHeader, bool includeCollections)
+    {
+        return inHeader == string.IsNullOrEmpty(_code.VsNamespaceSuggestion())
+            ? string.Format(
+                CultureInfo.InvariantCulture,
+                "{0}using System;{1}" +
+                "{2}",
+                inHeader ? Environment.NewLine : "",
+                includeCollections ? (Environment.NewLine + "using System.Collections.Generic;") : "",
+                inHeader ? "" : Environment.NewLine)
+            : "";
+    }
+}
+
+public class TypeMapper
+{
+    private const string ExternalTypeNameAttributeName = @"http://schemas.microsoft.com/ado/2006/04/codegeneration:ExternalTypeName";
+
+    private readonly System.Collections.IList _errors;
+    private readonly CodeGenerationTools _code;
+    private readonly MetadataTools _ef;
+
+    public TypeMapper(CodeGenerationTools code, MetadataTools ef, System.Collections.IList errors)
+    {
+        ArgumentNotNull(code, "code");
+        ArgumentNotNull(ef, "ef");
+        ArgumentNotNull(errors, "errors");
+
+        _code = code;
+        _ef = ef;
+        _errors = errors;
+    }
+
+    public static string FixNamespaces(string typeName)
+    {
+        return typeName.Replace("System.Data.Spatial.", "System.Data.Entity.Spatial.");
+    }
+
+    public string GetTypeName(TypeUsage typeUsage)
+    {
+        return typeUsage == null ? null : GetTypeName(typeUsage.EdmType, _ef.IsNullable(typeUsage), null);
+    }
+
+    public string GetTypeName(EdmType edmType)
+    {
+        return GetTypeName(edmType, null, null);
+    }
+
+    public string GetTypeName(TypeUsage typeUsage, string modelNamespace)
+    {
+        return typeUsage == null ? null : GetTypeName(typeUsage.EdmType, _ef.IsNullable(typeUsage), modelNamespace);
+    }
+
+    public string GetTypeName(EdmType edmType, string modelNamespace)
+    {
+        return GetTypeName(edmType, null, modelNamespace);
+    }
+
+    public string GetTypeName(EdmType edmType, bool? isNullable, string modelNamespace)
+    {
+        if (edmType == null)
+        {
+            return null;
+        }
+
+        var collectionType = edmType as CollectionType;
+        if (collectionType != null)
+        {
+            return String.Format(CultureInfo.InvariantCulture, "ICollection<{0}>", GetTypeName(collectionType.TypeUsage, modelNamespace));
+        }
+
+        var typeName = _code.Escape(edmType.MetadataProperties
+                                .Where(p => p.Name == ExternalTypeNameAttributeName)
+                                .Select(p => (string)p.Value)
+                                .FirstOrDefault())
+            ?? (modelNamespace != null && edmType.NamespaceName != modelNamespace ?
+                _code.CreateFullName(_code.EscapeNamespace(edmType.NamespaceName), _code.Escape(edmType)) :
+                _code.Escape(edmType));
+
+        if (edmType is StructuralType)
+        {
+            return typeName;
+        }
+
+        if (edmType is SimpleType)
+        {
+            var clrType = UnderlyingClrType(edmType);
+            if (!IsEnumType(edmType))
+            {
+                typeName = _code.Escape(clrType);
+            }
+
+            typeName = FixNamespaces(typeName);
+
+            return clrType.IsValueType && isNullable == true ?
+                String.Format(CultureInfo.InvariantCulture, "Nullable<{0}>", typeName) :
+                typeName;
+        }
+
+        throw new ArgumentException("edmType");
+    }
+
+    public Type UnderlyingClrType(EdmType edmType)
+    {
+        ArgumentNotNull(edmType, "edmType");
+
+        var primitiveType = edmType as PrimitiveType;
+        if (primitiveType != null)
+        {
+            return primitiveType.ClrEquivalentType;
+        }
+
+        if (IsEnumType(edmType))
+        {
+            return GetEnumUnderlyingType(edmType).ClrEquivalentType;
+        }
+
+        return typeof(object);
+    }
+
+    public object GetEnumMemberValue(MetadataItem enumMember)
+    {
+        ArgumentNotNull(enumMember, "enumMember");
+
+        var valueProperty = enumMember.GetType().GetProperty("Value");
+        return valueProperty == null ? null : valueProperty.GetValue(enumMember, null);
+    }
+
+    public string GetEnumMemberName(MetadataItem enumMember)
+    {
+        ArgumentNotNull(enumMember, "enumMember");
+
+        var nameProperty = enumMember.GetType().GetProperty("Name");
+        return nameProperty == null ? null : (string)nameProperty.GetValue(enumMember, null);
+    }
+
+    public System.Collections.IEnumerable GetEnumMembers(EdmType enumType)
+    {
+        ArgumentNotNull(enumType, "enumType");
+
+        var membersProperty = enumType.GetType().GetProperty("Members");
+        return membersProperty != null
+            ? (System.Collections.IEnumerable)membersProperty.GetValue(enumType, null)
+            : Enumerable.Empty<MetadataItem>();
+    }
+
+    public bool EnumIsFlags(EdmType enumType)
+    {
+        ArgumentNotNull(enumType, "enumType");
+
+        var isFlagsProperty = enumType.GetType().GetProperty("IsFlags");
+        return isFlagsProperty != null && (bool)isFlagsProperty.GetValue(enumType, null);
+    }
+
+    public bool IsEnumType(GlobalItem edmType)
+    {
+        ArgumentNotNull(edmType, "edmType");
+
+        return edmType.GetType().Name == "EnumType";
+    }
+
+    public PrimitiveType GetEnumUnderlyingType(EdmType enumType)
+    {
+        ArgumentNotNull(enumType, "enumType");
+
+        return (PrimitiveType)enumType.GetType().GetProperty("UnderlyingType").GetValue(enumType, null);
+    }
+
+    public string CreateLiteral(object value)
+    {
+        if (value == null || value.GetType() != typeof(TimeSpan))
+        {
+            return _code.CreateLiteral(value);
+        }
+
+        return string.Format(CultureInfo.InvariantCulture, "new TimeSpan({0})", ((TimeSpan)value).Ticks);
+    }
+
+    public bool VerifyCaseInsensitiveTypeUniqueness(IEnumerable<string> types, string sourceFile)
+    {
+        ArgumentNotNull(types, "types");
+        ArgumentNotNull(sourceFile, "sourceFile");
+
+        var hash = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        if (types.Any(item => !hash.Add(item)))
+        {
+            _errors.Add(
+                new CompilerError(sourceFile, -1, -1, "6023",
+                    String.Format(CultureInfo.CurrentCulture, CodeGenerationTools.GetResourceString("Template_CaseInsensitiveTypeConflict"))));
+            return false;
+        }
+        return true;
+    }
+
+    public IEnumerable<SimpleType> GetEnumItemsToGenerate(IEnumerable<GlobalItem> itemCollection)
+    {
+        return GetItemsToGenerate<SimpleType>(itemCollection)
+            .Where(e => IsEnumType(e));
+    }
+
+    public IEnumerable<T> GetItemsToGenerate<T>(IEnumerable<GlobalItem> itemCollection) where T : EdmType
+    {
+        return itemCollection
+            .OfType<T>()
+            .Where(i => !i.MetadataProperties.Any(p => p.Name == ExternalTypeNameAttributeName))
+            .OrderBy(i => i.Name);
+    }
+
+    public IEnumerable<string> GetAllGlobalItems(IEnumerable<GlobalItem> itemCollection)
+    {
+        return itemCollection
+            .Where(i => i is EntityType || i is ComplexType || i is EntityContainer || IsEnumType(i))
+            .Select(g => GetGlobalItemName(g));
+    }
+
+    public string GetGlobalItemName(GlobalItem item)
+    {
+        if (item is EdmType)
+        {
+            return ((EdmType)item).Name;
+        }
+        else
+        {
+            return ((EntityContainer)item).Name;
+        }
+    }
+
+    public IEnumerable<EdmProperty> GetSimpleProperties(EntityType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetSimpleProperties(ComplexType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetComplexProperties(EntityType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is ComplexType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetComplexProperties(ComplexType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is ComplexType && p.DeclaringType == type);
+    }
+
+    public IEnumerable<EdmProperty> GetPropertiesWithDefaultValues(EntityType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type && p.DefaultValue != null);
+    }
+
+    public IEnumerable<EdmProperty> GetPropertiesWithDefaultValues(ComplexType type)
+    {
+        return type.Properties.Where(p => p.TypeUsage.EdmType is SimpleType && p.DeclaringType == type && p.DefaultValue != null);
+    }
+
+    public IEnumerable<NavigationProperty> GetNavigationProperties(EntityType type)
+    {
+        return type.NavigationProperties.Where(np => np.DeclaringType == type);
+    }
+
+    public IEnumerable<NavigationProperty> GetCollectionNavigationProperties(EntityType type)
+    {
+        return type.NavigationProperties.Where(np => np.DeclaringType == type && np.ToEndMember.RelationshipMultiplicity == RelationshipMultiplicity.Many);
+    }
+
+    public FunctionParameter GetReturnParameter(EdmFunction edmFunction)
+    {
+        ArgumentNotNull(edmFunction, "edmFunction");
+
+        var returnParamsProperty = edmFunction.GetType().GetProperty("ReturnParameters");
+        return returnParamsProperty == null
+            ? edmFunction.ReturnParameter
+            : ((IEnumerable<FunctionParameter>)returnParamsProperty.GetValue(edmFunction, null)).FirstOrDefault();
+    }
+
+    public bool IsComposable(EdmFunction edmFunction)
+    {
+        ArgumentNotNull(edmFunction, "edmFunction");
+
+        var isComposableProperty = edmFunction.GetType().GetProperty("IsComposableAttribute");
+        return isComposableProperty != null && (bool)isComposableProperty.GetValue(edmFunction, null);
+    }
+
+    public IEnumerable<FunctionImportParameter> GetParameters(EdmFunction edmFunction)
+    {
+        return FunctionImportParameter.Create(edmFunction.Parameters, _code, _ef);
+    }
+
+    public TypeUsage GetReturnType(EdmFunction edmFunction)
+    {
+        var returnParam = GetReturnParameter(edmFunction);
+        return returnParam == null ? null : _ef.GetElementType(returnParam.TypeUsage);
+    }
+
+    public bool GenerateMergeOptionFunction(EdmFunction edmFunction, bool includeMergeOption)
+    {
+        var returnType = GetReturnType(edmFunction);
+        return !includeMergeOption && returnType != null && returnType.EdmType.BuiltInTypeKind == BuiltInTypeKind.EntityType;
+    }
+}
+#>

@@ -1,0 +1,40 @@
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\bin\Debug\ResourceLibrary.dll
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\bin\Debug\ResourceLibrary.pdb
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.Resource.resources
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.GenerateResource.cache
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.CoreCompileInputs.cache
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.dll
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.pdb
+C:\Users\Hawk Cheng\Desktop\Projects\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.csprojAssemblyReference.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\bin\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\bin\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.csprojAssemblyReference.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.Resource.resources
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.GenerateResource.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.CoreCompileInputs.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\TainanSpinningMall\tainanspinningmall\ResourceLibrary\obj\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\bin\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\bin\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.csprojAssemblyReference.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.Resource.resources
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.GenerateResource.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.CoreCompileInputs.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\bin\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\bin\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.csprojAssemblyReference.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.Resource.resources
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.GenerateResource.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.CoreCompileInputs.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\SampleProject\PRS_New\PRS_New\ResourceLibrary\obj\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\bin\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\bin\Debug\ResourceLibrary.pdb
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\obj\Debug\ResourceLibrary.csprojAssemblyReference.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\obj\Debug\ResourceLibrary.Resource.resources
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.GenerateResource.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\obj\Debug\ResourceLibrary.csproj.CoreCompileInputs.cache
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\obj\Debug\ResourceLibrary.dll
+C:\Users\HCheng03\OneDrive - dentsu\桌面\Git\SampleCode\ResourceLibrary\obj\Debug\ResourceLibrary.pdb

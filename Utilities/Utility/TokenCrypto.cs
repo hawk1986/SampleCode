@@ -1,0 +1,76 @@
+﻿using System;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Utilities.Utility
+{
+    public static class TokenCrypto
+    {
+        /// <summary>
+        /// 產生 HMACSHA256 雜湊
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public static string ComputeHMACSHA256(string data, string key)
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            using (var hmacSHA = new HMACSHA256(keyBytes))
+            {
+                var dataBytes = Encoding.UTF8.GetBytes(data);
+                var hash = hmacSHA.ComputeHash(dataBytes, 0, dataBytes.Length);
+                return BitConverter.ToString(hash).Replace("-", "").ToUpper();
+            }
+        }
+
+        /// <summary>
+        /// AES 加密
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="key"></param>
+        /// <param name="iv"></param>
+        /// <returns></returns>
+        public static string AESEncrypt(string data, string key, string iv)
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            var ivBytes = Encoding.UTF8.GetBytes(iv);
+            var dataBytes = Encoding.UTF8.GetBytes(data);
+            using (var aes = Aes.Create())
+            {
+                aes.Key = keyBytes;
+                aes.IV = ivBytes;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                var encryptor = aes.CreateEncryptor();
+                var encrypt = encryptor
+                    .TransformFinalBlock(dataBytes, 0, dataBytes.Length);
+                return Convert.ToBase64String(encrypt);
+            }
+        }
+
+        /// <summary>
+        /// AES 加密
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="key"></param>
+        /// <param name="iv"></param>
+        /// <returns></returns>
+        public static string AESDecrypt(string data, string key, string iv)
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            var ivBytes = Encoding.UTF8.GetBytes(iv);
+            var dataBytes = Convert.FromBase64String(data);
+            using (var aes = Aes.Create())
+            {
+                aes.Key = keyBytes;
+                aes.IV = ivBytes;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                var decryptor = aes.CreateDecryptor();
+                var decrypt = decryptor
+                    .TransformFinalBlock(dataBytes, 0, dataBytes.Length);
+                return Encoding.UTF8.GetString(decrypt);
+            }
+        }
+    }
+}
