@@ -35,6 +35,7 @@ namespace SampleCode
                 "~/Content/bootstrap-switch.css",
                 "~/Content/font-awesome.css",
                 "~/Content/ladda-themeless.min.css",
+                "~/Content/sweetalert.css",
                 "~/Content/Site.css"));
 
             bundles.Add(new ScriptBundle("~/bundles/script").Include(
@@ -56,6 +57,7 @@ namespace SampleCode
                 "~/Scripts/ladda.min.js",
                 "~/Scripts/inspinia.js",
                 "~/Scripts/string.format.js",
+                "~/Scripts/sweetalert.min.js",
                 "~/Scripts/basic.js"));
 
             bundles.Add(new ScriptBundle("~/bundles/table").Include(

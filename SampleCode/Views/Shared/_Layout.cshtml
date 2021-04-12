@@ -43,7 +43,7 @@
     <div id="wrapper">
         @Html.Partial("_Navbar", user)
         <div id="page-wrapper" style="background-image: url('/Content/static/img/Group.svg');">
-            @Html.Partial("_Header")
+            @Html.Partial("_Header", user)
             @RenderBody()
             @Html.Partial("_Footer")
         </div>

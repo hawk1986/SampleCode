@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="MarqueeModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <!--產生期間發現錯誤:
+警告 6002: 資料表/檢視 'Marquee.dbo.Marquee' 未定義主索引鍵。已推斷此索引鍵，並將定義建立成唯讀的資料表/檢視。-->
+        <EntityType Name="Marquee">
+          <Key>
+            <PropertyRef Name="SeqNo" />
+          </Key>
+          <Property Name="SeqNo" Type="int" Nullable="false" />
+          <Property Name="MarqueeContent" Type="nvarchar" MaxLength="255" />
+          <Property Name="InputDateTime" Type="datetime" />
+          <Property Name="EmpUniqNo" Type="int" />
+          <Property Name="EmpName" Type="nvarchar" MaxLength="100" />
+        </EntityType>
+        <!--產生期間發現錯誤:
+警告 6013: 資料表/檢視 'Marquee.dbo.View_Marquee' 未定義主索引鍵，也無法推斷有效的主索引鍵。此資料表/檢視已被排除。如果要使用此實體，您必須檢閱您的結構描述，加入正確的索引鍵，並將它取消註解。
+        <EntityType Name="View_Marquee">
+          <Property Name="MarqueeContent" Type="nvarchar" MaxLength="255" />
+        </EntityType>-->
+        <EntityContainer Name="MarqueeModelStoreContainer">
+          <EntitySet Name="Marquee" EntityType="Self.Marquee" store:Type="Tables" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [Marquee].[SeqNo] AS [SeqNo], 
+    [Marquee].[MarqueeContent] AS [MarqueeContent], 
+    [Marquee].[InputDateTime] AS [InputDateTime], 
+    [Marquee].[EmpUniqNo] AS [EmpUniqNo], 
+    [Marquee].[EmpName] AS [EmpName]
+    FROM [dbo].[Marquee] AS [Marquee]</DefiningQuery>
+          </EntitySet>
+        </EntityContainer>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="MarqueeModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="Marquee">
+          <Key>
+            <PropertyRef Name="SeqNo" />
+          </Key>
+          <Property Name="SeqNo" Type="Int32" Nullable="false" />
+          <Property Name="MarqueeContent" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="InputDateTime" Type="DateTime" Precision="3" />
+          <Property Name="EmpUniqNo" Type="Int32" />
+          <Property Name="EmpName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityContainer Name="MarqueeEntities3" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="Marquees" EntityType="Self.Marquee" />
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="MarqueeModelStoreContainer" CdmEntityContainer="MarqueeEntities3">
+          <EntitySetMapping Name="Marquees">
+            <EntityTypeMapping TypeName="MarqueeModel.Marquee">
+              <MappingFragment StoreEntitySet="Marquee">
+                <ScalarProperty Name="SeqNo" ColumnName="SeqNo" />
+                <ScalarProperty Name="MarqueeContent" ColumnName="MarqueeContent" />
+                <ScalarProperty Name="InputDateTime" ColumnName="InputDateTime" />
+                <ScalarProperty Name="EmpUniqNo" ColumnName="EmpUniqNo" />
+                <ScalarProperty Name="EmpName" ColumnName="EmpName" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="無" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

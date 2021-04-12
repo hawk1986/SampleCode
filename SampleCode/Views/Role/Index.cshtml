@@ -1,0 +1,126 @@
+@model RoleSearchModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var function = auth.First(x => x.Code == "RoleIndex");
+    var details = auth.Any(x => x.Code == "RoleDetails");
+    var create = auth.Any(x => x.Code == "RoleCreate");
+    var edit = auth.Any(x => x.Code == "RoleEdit");
+    var delete = auth.Any(x => x.Code == "RoleDelete");
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/table")
+    <script src="~/Scripts/table-init.js"></script>
+    <script>
+        // set column function
+        function setColumn() {
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("SetColumn", "Common")',
+                data: { functionName: 'role', data: this.columns[0] },
+                dataType: 'json',
+                success: function (data) { },
+                error: function (data, error) { }
+            });
+        }
+
+        // Init
+        $(function () {
+            // init page event
+            var initOptions = {
+                detailsUrl: '@Url.Action("Details")',
+                editUrl: '@Url.Action("Edit")',
+                deleteUrl: '@Url.Action("Delete")',
+                pagingUrl: '@Url.Action("Paging")',
+                getColumnUrl: '@Url.Action("GetColumn", "Common")',
+                functionName: 'role',
+                detailsBtn: '@details' == 'True',
+                editBtn: '@edit' == 'True',
+                deleteBtn: '@delete' == 'True',
+                confirmMessage: '@string.Format(@Resource.ExecutionConfirm, @Resource.Delete, @Resource.Role)',
+                successMessage: '@string.Format(@Resource.ExecutionCompleted, @Resource.Delete, @Resource.Role)',
+                errorMessage: '@string.Format(@Resource.ExecutionFailed, @Resource.Delete, @Resource.Role)',
+                systemErrorMessage: '@Resource.SystemError',
+                onReorderColumn: setColumn,
+                onColumnSwitch: setColumn
+            };
+            // init page event
+            InitBasicEvent(initOptions);
+        });
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div class="row">
+                        <form class="form-horizontal" id="search_form">
+                            @Html.LabelFor(model => model.Search, htmlAttributes: new { @class = "control-label col-sm-1" })
+                            <div class="col-sm-2 m-b-xs">
+                                @Html.EditorFor(model => model.Search, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.Keyword } })
+                            </div>
+                            @Html.LabelFor(model => model.IsEnable, htmlAttributes: new { @class = "control-label col-sm-1" })
+                            <div class="col-sm-2 m-b-xs">
+                                @Html.DropDownListFor(model => model.IsEnable, Model.YesNoList, string.Format(Resource.PleaseSelect, Resource.Status), new { @class = "form-control selectpicker" })
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="submit" id="search_form_submit" class="btn btn-primary"><i class="fa fa-search"></i> @Resource.Search</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div id="toolbar">
+                        @if (create)
+                        {
+                            <a href="@Url.Action("Create")" id="create" class="btn btn-primary">
+                                <i class="fa fa-plus" aria-hidden="true"></i> @Resource.Create
+                            </a>
+                        }
+                        @if (details)
+                        {
+                            <button id="details_btn" class="btn btn-info disabled">
+                                <i class="fa fa-eye" aria-hidden="true"></i> @Resource.Details
+                            </button>
+                        }
+                        @if (edit)
+                        {
+                            <button id="edit_btn" class="btn btn-success disabled">
+                                <i class="fa fa-pencil" aria-hidden="true"></i> @Resource.Edit
+                            </button>
+                        }
+                        @if (delete)
+                        {
+                            <button id="delete_btn" class="btn btn-danger disabled">
+                                <i class="fa fa-times" aria-hidden="true"></i> @Resource.Delete
+                            </button>
+                        }
+                    </div>
+                    <table id="eventsTable" data-toolbar="#toolbar" data-sort-name="SequenceNo" data-row-style="rowStyle"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

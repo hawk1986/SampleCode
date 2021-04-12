@@ -4,7 +4,7 @@ using Microsoft.Owin.Security.Cookies;
 using Owin;
 using System;
 
-namespace PRS_New
+namespace SampleCode
 {
     public partial class Startup
     {

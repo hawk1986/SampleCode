@@ -165,35 +165,35 @@ namespace SampleCode.Controllers
         /// <param name="path"></param>
         /// <param name="type"></param>
         /// <param name="genThumbImage"></param>
-        //protected static void fileAttachedHandler(BaseController obj, PostedFileBaseModel viewModel, Guid parent, string path, string type, bool genThumbImage = true)
-        //{
-        //    //處理上傳的檔案
-        //    if (viewModel.PostedFiles != null && viewModel.PostedFiles.Count > 0)
-        //    {
-        //        for (int i = 0; i < viewModel.PostedFiles.Count; i++)
-        //        {
-        //            var file = viewModel.PostedFiles[i];
-        //            if (uploadFile(obj, file, path, out string result, out string extension, out bool isImage, out Guid id, genThumbImage))
-        //            {
-        //                viewModel.NewAttachedFiles.Add(new FileAttached
-        //                {
-        //                    ID = id,
-        //                    ParentID = parent,
-        //                    TableType = type,
-        //                    ItemType = viewModel.PostedCategory.Count > i ? viewModel.PostedCategory[i] ?? string.Empty : string.Empty,
-        //                    FileName = file.FileName,
-        //                    FileExtension = extension,
-        //                    FilePath = result,
-        //                    FileSize = file.ContentLength,
-        //                    IsImageFile = isImage,
-        //                    IsThumbImage = isImage && genThumbImage,
-        //                    Description = viewModel.PostedCaption.Count > i ? viewModel.PostedCaption[i] ?? string.Empty : string.Empty,
-        //                    CreateTime = DateTime.Now
-        //                });
-        //            }
-        //        }
-        //    }
-        //}
+        protected static void fileAttachedHandler(BaseController obj, PostedFileBaseModel viewModel, Guid parent, string path, string type, bool genThumbImage = true)
+        {
+            //處理上傳的檔案
+            if (viewModel.PostedFiles != null && viewModel.PostedFiles.Count > 0)
+            {
+                for (int i = 0; i < viewModel.PostedFiles.Count; i++)
+                {
+                    var file = viewModel.PostedFiles[i];
+                    if (uploadFile(obj, file, path, out string result, out string extension, out bool isImage, out Guid id, genThumbImage))
+                    {
+                        viewModel.NewAttachedFiles.Add(new FileAttached
+                        {
+                            ID = id,
+                            ParentID = parent,
+                            TableType = type,
+                            ItemType = viewModel.PostedCategory.Count > i ? viewModel.PostedCategory[i] ?? string.Empty : string.Empty,
+                            FileName = file.FileName,
+                            FileExtension = extension,
+                            FilePath = result,
+                            FileSize = file.ContentLength,
+                            IsImageFile = isImage,
+                            IsThumbImage = isImage && genThumbImage,
+                            Description = viewModel.PostedCaption.Count > i ? viewModel.PostedCaption[i] ?? string.Empty : string.Empty,
+                            CreateTime = DateTime.Now
+                        });
+                    }
+                }
+            }
+        }
         #endregion
 
         /// <summary>
@@ -205,47 +205,47 @@ namespace SampleCode.Controllers
         /// <param name="path"></param>
         /// <param name="type"></param>
         /// <param name="genThumbImage"></param>
-        protected static void fileAttachedHandler(BaseController obj, PostedFileBaseModel viewModel, Guid parent, string path, string type, bool genThumbImage = true)
-        {
-            var itemType = string.Empty;
+        //protected static void fileAttachedHandler(BaseController obj, PostedFileBaseModel viewModel, Guid parent, string path, string type, bool genThumbImage = true)
+        //{
+        //    var itemType = string.Empty;
             
-            if (viewModel.PostedFiles != null && viewModel.PostedFiles.Count > 0)
-                _fileAttachedHandler(obj, viewModel.PostedFiles, viewModel.NewAttachedFiles, viewModel.PostedCategory, viewModel.PostedCaption, parent, path, type, viewModel.AttachedArea, viewModel.AttachedBuyGuide, genThumbImage, itemType, viewModel.MainPic, viewModel.PicOrder);
-        }
+        //    if (viewModel.PostedFiles != null && viewModel.PostedFiles.Count > 0)
+        //        _fileAttachedHandler(obj, viewModel.PostedFiles, viewModel.NewAttachedFiles, viewModel.PostedCategory, viewModel.PostedCaption, parent, path, type, viewModel.AttachedArea, viewModel.AttachedBuyGuide, genThumbImage, itemType, viewModel.MainPic, viewModel.PicOrder);
+        //}
 
-        protected static List<FileAttached> _fileAttachedHandler(BaseController obj, List<HttpPostedFileBase> PostedFiles, List<FileAttached> NewAttachedFiles, List<string> PostedCategory,
-                                                   List<string> PostedCaption, Guid parent, string path, string type, List<FileAttached> areaKind, List<FileAttached> buyGuide,bool genThumbImage = true, string itemType = null, 
-                                                   List<bool> mainPic = null, List<int?> order = null)
-        {
-            //處理上傳的檔案
-            if (PostedFiles != null && PostedFiles.Count > 0)
-            {
-                for (int i = 0; i < PostedFiles.Count; i++)
-                {
-                    var file = PostedFiles[i];
-                    if (uploadFile(obj, file, path, out string result, out string extension, out bool isImage, out Guid id, genThumbImage))
-                    {
-                        NewAttachedFiles.Add(new FileAttached
-                        {
-                            ID = id,
-                            ParentID = parent,
-                            TableType = type,
-                            ItemType = string.IsNullOrWhiteSpace(itemType) ? PostedCategory.Count > i ? PostedCategory[i] ?? string.Empty : string.Empty : itemType,
-                            FileName = file.FileName,
-                            FileExtension = extension,
-                            FilePath = result,
-                            FileSize = file.ContentLength,
-                            IsImageFile = isImage,
-                            IsThumbImage = isImage && genThumbImage,
-                            Description = PostedCaption.Count > i ? PostedCaption[i] ?? string.Empty : string.Empty,
-                            CreateTime = DateTime.Now,
-                            UpdateTime = DateTime.Now
-                        });
-                    }
-                }
-            }
-            return NewAttachedFiles;
-        }
+        //protected static List<FileAttached> _fileAttachedHandler(BaseController obj, List<HttpPostedFileBase> PostedFiles, List<FileAttached> NewAttachedFiles, List<string> PostedCategory,
+        //                                           List<string> PostedCaption, Guid parent, string path, string type, List<FileAttached> areaKind, List<FileAttached> buyGuide,bool genThumbImage = true, string itemType = null, 
+        //                                           List<bool> mainPic = null, List<int?> order = null)
+        //{
+        //    //處理上傳的檔案
+        //    if (PostedFiles != null && PostedFiles.Count > 0)
+        //    {
+        //        for (int i = 0; i < PostedFiles.Count; i++)
+        //        {
+        //            var file = PostedFiles[i];
+        //            if (uploadFile(obj, file, path, out string result, out string extension, out bool isImage, out Guid id, genThumbImage))
+        //            {
+        //                NewAttachedFiles.Add(new FileAttached
+        //                {
+        //                    ID = id,
+        //                    ParentID = parent,
+        //                    TableType = type,
+        //                    ItemType = string.IsNullOrWhiteSpace(itemType) ? PostedCategory.Count > i ? PostedCategory[i] ?? string.Empty : string.Empty : itemType,
+        //                    FileName = file.FileName,
+        //                    FileExtension = extension,
+        //                    FilePath = result,
+        //                    FileSize = file.ContentLength,
+        //                    IsImageFile = isImage,
+        //                    IsThumbImage = isImage && genThumbImage,
+        //                    Description = PostedCaption.Count > i ? PostedCaption[i] ?? string.Empty : string.Empty,
+        //                    CreateTime = DateTime.Now,
+        //                    UpdateTime = DateTime.Now
+        //                });
+        //            }
+        //        }
+        //    }
+        //    return NewAttachedFiles;
+        //}
 
         /// <summary>
         /// 上傳檔案

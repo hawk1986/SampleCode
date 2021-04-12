@@ -9,7 +9,7 @@ namespace SampleCode.ViewModel
         /// <summary>
         /// CaptchaID
         /// </summary>
-        [Required(ErrorMessageResourceName = "RequiredError", ErrorMessageResourceType = typeof(Resource))]
+        //[Required(ErrorMessageResourceName = "RequiredError", ErrorMessageResourceType = typeof(Resource))]
         public Guid CaptchaID { get; set; }
 
         /// <summary>
@@ -20,7 +20,7 @@ namespace SampleCode.ViewModel
         /// <summary>
         /// CaptchaCode
         /// </summary>
-        [Required(ErrorMessageResourceName = "RequiredError", ErrorMessageResourceType = typeof(Resource))]
+        //[Required(ErrorMessageResourceName = "RequiredError", ErrorMessageResourceType = typeof(Resource))]
         [Display(Name = "CaptchaCode", ResourceType = typeof(Resource))]
         public string CaptchaCode { get; set; }
 
@@ -36,7 +36,7 @@ namespace SampleCode.ViewModel
         /// Password
         /// </summary>
         [DataType(DataType.Password)]
-        [Required(ErrorMessageResourceName = "RequiredError", ErrorMessageResourceType = typeof(Resource))]
+        //[Required(ErrorMessageResourceName = "RequiredError", ErrorMessageResourceType = typeof(Resource))]
         [StringLength(128, ErrorMessageResourceName = "StringLengthError", ErrorMessageResourceType = typeof(Resource))]
         [Display(Name = "Password", ResourceType = typeof(Resource))]
         public string Password { get; set; }

@@ -1,6 +1,17 @@
-﻿<div class="row border-bottom">
+﻿@model UserViewModel
+@{
+    var random = new Random();
+    var marquees = Model.Marquee.OrderBy(x => random.Next()).Take(3).ToList();
+    var aa = string.Empty;
+    foreach (var item in marquees)
+    {
+        aa += string.Concat(item, "                                     ");
+    }
+}
+
+<div class="row border-bottom">
     <nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0; background-image: url('/Content/static/img/Group.svg');">
-        <div class="navbar-header"  >
+        <div class="navbar-header">
             <a class="navbar-minimalize minimalize-styl-2 btn btn-menu " href="#"><i class="fa fa-bars"></i> </a>
             <h1 class="logo"><img src="~/Content/static/img/dentsu logo_black.png" /></h1>
             @*<h1 class="logo"><img src="~/Content/static/img/logo.svg" /></h1>*@
@@ -12,5 +23,18 @@
                 </a>
             </li>
         </ul>
-    </nav>
+        <div class="container">
+            <div class="navbar-btn">
+                <div class="progress-bar-animated  alert-dismissible" role="alert">
+                    <button type="button" onclick="this.parentNode.parentNode.removeChild(this.parentNode);" class="close" data-dismiss="alert">
+                        <span aria-hidden="true">×</span>
+                        <span class="sr-only">Close</span>
+                    </button>
+                    <marquee>
+                        <div style="font-family: Impact; font-size: 14pt; color: red; white-space: pre;"><strong><i class='fa fa-rss' style='color: orangered'></i></strong>@aa</div>
+                    </marquee>
+                </div>
+            </div>
+        </div>
+    </nav>    
 </div>

@@ -1,0 +1,126 @@
+@model OperateRecordSearchModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var function = auth.First(x => x.Code == "OperateRecordIndex");
+    var details = auth.Any(x => x.Code == "OperateRecordDetails");
+    var create = auth.Any(x => x.Code == "OperateRecordCreate");
+    var edit = auth.Any(x => x.Code == "OperateRecordEdit");
+    var delete = auth.Any(x => x.Code == "OperateRecordDelete");
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/table")
+    <script src="~/Scripts/table-init.js"></script>
+    <script>
+		//formatter
+        @if (Model.Formatter != null)
+        {
+            foreach (var fmt in Model.Formatter)
+            {
+                @Html.Raw("function ")
+                @Html.Raw(fmt.Key)
+                @Html.Raw("(value,row,index){if(null!==value){switch(value){")
+                foreach (var item in fmt.Value)
+                {
+                    @Html.Raw(string.Format("case '{0}': return '{1}';", item.Value, item.Text))
+                }
+                @Html.Raw("}}}")
+                @System.Environment.NewLine
+            }
+        }
+        // set column function
+        function setColumn() {
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("SetColumn", "Common")',
+                data: { functionName: 'operateRecord', data: this.columns[0] },
+                dataType: 'json',
+                success: function (data) { },
+                error: function (data, error) { }
+            });
+        }
+
+        // Init
+        $(function () {
+            // init page event
+            var initOptions = {
+                detailsUrl: '@Url.Action("Details")',
+                editUrl: '@Url.Action("Edit")',
+                deleteUrl: '@Url.Action("Delete")',
+                pagingUrl: '@Url.Action("Paging")',
+                getColumnUrl: '@Url.Action("GetColumn", "Common")',
+                functionName: 'operateRecord',
+                detailsBtn: '@details' == 'True',
+                editBtn: '@edit' == 'True',
+                deleteBtn: '@delete' == 'True',
+                confirmMessage: '@string.Format(@Resource.ExecutionConfirm, @Resource.Delete, @Resource.OperateRecord)',
+                successMessage: '@string.Format(@Resource.ExecutionCompleted, @Resource.Delete, @Resource.OperateRecord)',
+                errorMessage: '@string.Format(@Resource.ExecutionFailed, @Resource.Delete, @Resource.OperateRecord)',
+                systemErrorMessage: '@Resource.SystemError',
+                onReorderColumn: setColumn,
+                onColumnSwitch: setColumn
+            };
+            // init page event
+            InitBasicEvent(initOptions);
+        });
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div class="row">
+                        <form class="form-horizontal" id="search_form">
+                            @Html.LabelFor(model => model.Search, htmlAttributes: new { @class = "control-label col-sm-1" })
+                            <div class="col-sm-2 m-b-xs">
+                                @Html.EditorFor(model => model.Search, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.Keyword } })
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="submit" id="search_form_submit" class="btn btn-primary"><i class="fa fa-search"></i> @Resource.Search</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    <div id="toolbar">
+                        @if (details)
+                        {
+                            <button id="details_btn" class="btn btn-info disabled">
+                                <i class="fa fa-eye" aria-hidden="true"></i> @Resource.Details
+                            </button>
+                        }
+                        @if (delete)
+                        {
+                            <button id="delete_btn" class="btn btn-danger disabled">
+                                <i class="fa fa-times" aria-hidden="true"></i> @Resource.Delete
+                            </button>
+                        }
+                    </div>
+                    <table id="eventsTable" data-toolbar="#toolbar" data-sort-name="SequenceNo" data-row-style="rowStyle"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

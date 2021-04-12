@@ -18,6 +18,7 @@ namespace SampleCode.Controllers
 {
     public class AccountController : BaseController
     {
+        
         readonly ICommonManager _commonManager;
         readonly IUserManager _userManager;
         protected IAuthenticationManager Authentication => HttpContext.GetOwinContext().Authentication;
@@ -154,7 +155,7 @@ namespace SampleCode.Controllers
                 //判斷是否鎖定帳號
                 isLockAccount = LoginLockManager.IsLockAccount(viewModel.Account);
                 //驗證碼檢查
-                if (!isLockAccount && CaptchaManager.RemoveCaptcha(viewModel.CaptchaID, viewModel.CaptchaCode))
+                if (!isLockAccount /*&& CaptchaManager.RemoveCaptcha(viewModel.CaptchaID, viewModel.CaptchaCode)*/)
                 {
                     viewModel.NowTime = NowTime;
                     var user = _userManager.ValidateUser(viewModel);
@@ -162,9 +163,13 @@ namespace SampleCode.Controllers
                     {
                         // 登入成功
                         LoginLockManager.LoginSuccess(viewModel.Account);
+
+                        user.Marquee = _userManager.GetMarquees();
+
                         var auth = user.Auth;
                         UnobtrusiveSession.Session["User"] = user;
                         UnobtrusiveSession.Session["Auth"] = auth;
+                        
                         // 設定驗證
                         var identity = new ClaimsIdentity(
                             new[] {

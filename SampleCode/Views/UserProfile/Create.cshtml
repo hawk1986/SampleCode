@@ -1,0 +1,116 @@
+@model UserProfileViewModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var action = ViewContext.RouteData.Values["action"] as string;
+    var function = auth.First(x => x.Code == "UserProfile" + action);
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
+@helper ListOptionBlock(int i, ListOption option)
+{
+    <tr>
+        <td class="col-sm-1">
+            <span class="control-label"><input type="text" name="ListOption[@i].field" value="@option.field" /></span>
+        </td>
+        <td class="col-sm-1">
+            <span class="control-label"><input type="text" name="ListOption[@i].title" value="@option.title" /></span>
+        </td>
+        <td class="col-sm-1">
+            <span class="control-label"><input type="text" name="ListOption[@i].formatter" value="@option.formatter" /></span>
+        </td>
+        <td class="col-sm-9">
+            <label class="checkbox-inline">
+                <input type="checkbox" name="ListOption[@i].checkbox" value="true" @(option.checkbox ? "checked" : "") />
+                <input type="hidden" name="ListOption[@i].checkbox" value="false" />
+                @Resource.Checkbox
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="ListOption[@i].sortable" value="true" @(option.sortable ? "checked" : "") />
+                <input type="hidden" name="ListOption[@i].sortable" value="false" />
+                @Resource.Sortable
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" name="ListOption[@i].visible" value="true" @(option.visible ? "checked" : "") />
+                <input type="hidden" name="ListOption[@i].visible" value="false" />
+                @Resource.Visible
+            </label>
+        </td>
+    </tr>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    @using (Html.BeginForm(action, "UserProfile", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "create_form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                        @Html.Hidden("Initial", Model.Code)
+                        @Html.HiddenFor(model => model.SequenceNo)
+                        @Html.HiddenFor(model => model.ID)
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.UserID, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.UserID, Model.UserList, string.Format(Resource.PleaseSelect, Resource.User), new { @class = "form-control selectpicker" })
+                                @Html.ValidationMessageFor(model => model.UserID, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Code, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.Code, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.Code, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.ListOption, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-9 mlten">
+                                <table class="table table-hover table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>@Resource.Field</th>
+                                            <th>@Resource.Title</th>
+                                            <th>@Resource.Formatter</th>
+                                            <th>@Resource.Option</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < Model.ListOption.Count; i++)
+                                        {
+                                            @ListOptionBlock(i, Model.ListOption[i])
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-sm-offset-2 col-sm-10">
+                                <button type="submit" id="form_submit" class="btn btn-primary"><i class="fa fa-plus"></i> @Resource.Save</button>
+                                <button type="reset" class="btn btn-default"><i class="fa fa-eraser"></i> @Resource.Reset</button>
+                                <a id="exit_btn" href="@Url.Action("Index")" class="btn btn-danger"><i class="fa fa-sign-out"></i> @Resource.Exit</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

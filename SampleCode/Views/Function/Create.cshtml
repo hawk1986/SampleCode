@@ -1,0 +1,231 @@
+@model FunctionViewModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var action = ViewContext.RouteData.Values["action"] as string;
+    var function = auth.First(x => x.Code == "Function" + action);
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        $(function () {
+            dependency();
+            $('#ControllerName').change(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("GetActionList")',
+                    data: { controllerNmae: this.value },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.length > 0) {
+                            $('#ActionName').empty();
+                            $('#ActionName').append($('<option></option>').val('').text('@string.Format(Resource.PleaseSelect, Resource.ActionName)'));
+                            $.each(data, function (i, item) {
+                                $('#ActionName').append($('<option></option>').val(item.Value).text(item.Text));
+                            });
+                            $('#ActionName').selectpicker('refresh');
+                        }
+                    },
+                    error: function (data, error) { }
+                });
+            });
+            // autocomplete
+            $('#GroupName').typeahead({
+                ajax: {
+                    url: '@Url.Action("GetGroupName", "Function")',
+                    timeout: 500,
+                    triggerLength: 1,
+                    method: "get"
+                }
+            });
+            // 模組與群組決定後，查詢目前順序序號並填入
+            $('#ModuleID, #GroupName').change(function () {
+                var moduleId = $('#ModuleID option:selected').val();
+                var groupName = $('#GroupName').val();
+                var id = $('#ID').val();
+                if (moduleId != null && groupName != '') {
+                    $.ajax({
+                        type: 'GET',
+                        url: '@Url.Action("GetSequence")',
+                        data: { 'moduleId': moduleId, 'groupName': groupName, 'functionId': id },
+                        dataType: 'json',
+                        success: function (data) {
+                            $('#GroupSequence').val(data.GroupSequence);
+                            $('#Sequence').val(data.Sequence);
+                            $('#BitCode').val(data.BitCode);
+                            // TODO: add dep function
+                            $('div.dependency').html('');
+                            var template = '<label class="checkbox-inline"><input type="checkbox" name="DependencyFunction" value="{0}" data-bit="{0}" data-dependency="{1}" /> {2}</label>';
+                            $.each(data.DependencyFunctionList, function (index, element) {
+                                $('div.dependency').append(String.format(template, element.BitCode, element.Dependency, element.SimpleName));
+                                dependency();
+                            });
+                        },
+                        error: function (data, error) { }
+                    });
+                }
+            });
+        });
+        function dependency()
+        {
+            $('div.dependency input[type="checkbox"]').change(function () {
+                var self = $(this);
+                var boxSet = self.parents('div.dependency').find('input[type="checkbox"]');
+                var dependency = self.data('dependency');
+                $.each(boxSet, function (index, element) {
+                    var bit = $(element).data('bit');
+                    if ((bit & dependency) == bit) {
+                        if (self.prop('checked')) {
+                            $(element).prop('checked', true).attr('onclick', 'return false;').addClass('disabled');
+                        }
+                        else {
+                            $(element).prop('checked', false).removeAttr('onclick').removeClass('disabled');
+                        }
+                    }
+                });
+                var sum = 0;
+                $('input[name="DependencyFunction"]:checked').each(function () {
+                    sum += parseInt($(this).val());
+                });
+                $('#Dependency').val(sum);
+            });
+        }
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    @using (Html.BeginForm(action, "Function", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "create_form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                        @Html.Hidden("Initial", Model.Code)
+                        @Html.HiddenFor(model => model.SequenceNo)
+                        @Html.HiddenFor(model => model.ID)
+                        @Html.HiddenFor(model => model.BitCode)
+                        @Html.HiddenFor(model => model.Dependency)
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.ModuleID, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.ModuleID, Model.ModuleList, string.Format(Resource.PleaseSelect, Resource.Module), new { @class = "form-control selectpicker" })
+                                @Html.ValidationMessageFor(model => model.ModuleID, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.GroupName, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.GroupName, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.GroupName, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.GroupSequence, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.GroupSequence, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.GroupSequence, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Code, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.Code, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.Code, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Sequence, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.Sequence, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.Sequence, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.SimpleName, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.SimpleName, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.SimpleName, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.DisplayName, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.DisplayName, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.DisplayName, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.Label("", Resource.Dependency, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4 dependency">
+                                @foreach (var item in Model.DependencyFunctionList)
+                                {
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" name="DependencyFunction" value="@item.BitCode" data-bit="@item.BitCode" data-dependency="@item.Dependency" @((item.BitCode & Model.Dependency) == item.BitCode ? "checked" : "") />
+                                        @item.SimpleName
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.ControllerName, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.ControllerName, Model.ControllerList, string.Format(Resource.PleaseSelect, Resource.ControllerName), new { @class = "form-control selectpicker" })
+                                @Html.ValidationMessageFor(model => model.ControllerName, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.ActionName, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.ActionName, Model.ActionList, string.Format(Resource.PleaseSelect, Resource.ActionName), new { @class = "form-control selectpicker" })
+                                @Html.ValidationMessageFor(model => model.ActionName, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.Label("", Resource.Function, new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                <label class="checkbox-inline">
+                                    @Html.EditorFor(model => model.IsEnable)
+                                    @Resource.IsEnable
+                                    @Html.ValidationMessageFor(model => model.IsEnable, "", new { @class = "text-danger" })
+                                </label>
+                                <label class="checkbox-inline">
+                                    @Html.EditorFor(model => model.DisplayTree)
+                                    @Resource.DisplayTree
+                                    @Html.ValidationMessageFor(model => model.DisplayTree, "", new { @class = "text-danger" })
+                                </label>
+                                <label class="checkbox-inline">
+                                    @Html.EditorFor(model => model.DisplayHeader)
+                                    @Resource.DisplayHeader
+                                    @Html.ValidationMessageFor(model => model.DisplayHeader, "", new { @class = "text-danger" })
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-sm-offset-2 col-sm-10">
+                                <button type="submit" id="form_submit" class="btn btn-primary"><i class="fa fa-plus"></i> @Resource.Save</button>
+                                <button type="reset" class="btn btn-default"><i class="fa fa-eraser"></i> @Resource.Reset</button>
+                                <a id="exit_btn" href="@Url.Action("Index")" class="btn btn-danger"><i class="fa fa-sign-out"></i> @Resource.Exit</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

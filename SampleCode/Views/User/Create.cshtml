@@ -1,0 +1,258 @@
+@model UserViewModel
+@{
+    var auth = UnobtrusiveSession.Session["Auth"] as IList<Auth>;
+    var action = ViewContext.RouteData.Values["action"] as string;
+    var function = auth.First(x => x.Code == "User" + action);
+    ViewBag.Title = function.ModuleName + " / " + function.GroupName + " / " + function.SimpleName;
+}
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        $(function () {
+            RoleChange();
+
+            $("#PhotoUpload").change(function () {
+                src = getObjectURL(this.files[0]);
+                $("#image").show().attr("src", src);
+                $("#image").parent().find(".nofile").hide();
+                $("#image").parent().find(".close").show();
+            });
+
+            $("#image").attr("src", $("#image").attr("src"));
+            $("#image").load(function () {
+                if ($(this).prop("naturalWidth") > $(this).parent().parent().width()) {
+                    $(this).css({ width: "100%" });
+                } else {
+                    $(this).css({ width: "auto" });
+                }
+                $(this).parent().find(".close").show();
+            }).error(function () {
+                $(this).hide();
+                if ($(this).attr("src") != "") {
+                    $(this).parent().find(".nofile,.close").show();
+                }
+            })
+            $(".close").click(function () {
+                $(this).parents(".form-group").find("input[type=file]").val('');
+                $(this).parent().find("input[type='hidden']").val('');
+                $(this).parent().find("img").hide();
+                $(this).parent().find(".nofile").hide();
+                $(this).hide();
+            });
+        });
+
+        function RoleChange() {
+            $("#RoleID").change(function () {
+                var role = [];
+                $("#RoleID option:selected").each(function () {
+                    role.push($(this).val());
+                });
+                $('#DefaultIndex').html('<option>@(string.Format(Resource.PleaseSelect, Resource.Function))</option>');
+                $('#DefaultIndex').selectpicker('refresh');
+                if (role.length > 0) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("GetFunctionList", "User")',
+                        data: { roles: role },
+                        dataType: 'json',
+                        success: function (data) {
+                            if (data) {
+                                $.each(data, function (key, val) {
+                                    $('#DefaultIndex').append("<option value='" + val.Value + "' >" + val.Text + "</option> ");
+                                });
+                                $('#DefaultIndex').selectpicker('refresh');
+                            } else {
+                            }
+                        },
+                        error: function (data, error) { }
+                    });
+                } else {
+                    $('#DefaultIndex').selectpicker('refresh');
+                }
+            });
+        }
+    </script>
+}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-12">
+        <ol class="breadcrumb">
+            <li>
+                <a href="#">@function.ModuleName</a>
+            </li>
+            <li>
+                @Html.ActionLink(function.GroupName, "Index")
+            </li>
+            <li class="active">
+                <strong>@function.SimpleName</strong>
+            </li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper wrapper-content animated">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-content">
+                    @using (Html.BeginForm(action, "User", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "create_form", enctype = "multipart/form-data" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                        @Html.Hidden("Initial", Model.Account)
+                        @Html.HiddenFor(model => model.SequenceNo)
+                        @Html.HiddenFor(model => model.ID)
+                        @Html.HiddenFor(model => model.HashToken)
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Name, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        if (Model.ID == Guid.Empty)
+                        {
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Account, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.Account, new { htmlAttributes = new { @class = "form-control" } })
+                                    @Html.ValidationMessageFor(model => model.Account, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Password, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control" } })
+                                    @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Account, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.Account, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                                    @Html.ValidationMessageFor(model => model.Account, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Password, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control", placeholder = Resource.EmptyIsNotChangePassword } })
+                                    @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        }
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.RoleID, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.ListBoxFor(model => model.RoleID, Model.RoleList, new { @class = "form-control selectpicker", data_live_search = "true", data_size = "10" })
+                                @Html.ValidationMessageFor(model => model.RoleID, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.DepartmentID, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.ListBoxFor(model => model.DepartmentIDs, Model.DepartmentList, new { @class = "form-control selectpicker", data_live_search = "true", data_size = "10" })
+                                @Html.ValidationMessageFor(model => model.DepartmentIDs, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Email, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.Email, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.Email, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.ContactTel, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.EditorFor(model => model.ContactTel, new { htmlAttributes = new { @class = "form-control" } })
+                                @Html.ValidationMessageFor(model => model.ContactTel, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.DefaultIndex, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                @Html.DropDownListFor(model => model.DefaultIndex, Model.FunctionList, string.Format(Resource.PleaseSelect, Resource.DefaultIndex), new { @class = "form-control selectpicker", data_live_search = "true", data_size = "10" })
+                                @Html.ValidationMessageFor(model => model.DefaultIndex, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.Label("", Resource.Function, new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-4">
+                                <label class="checkbox-inline">
+                                    @Html.EditorFor(model => model.IsEnable)
+                                    @Resource.IsEnable
+                                    @Html.ValidationMessageFor(model => model.IsEnable, "", new { @class = "text-danger" })
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.PhotoUpload, htmlAttributes: new { @class = "control-label col-sm-2" })
+                            <div class="col-sm-2">
+                                <input type="file" id="PhotoUpload" name="PhotoUpload">
+                                @Html.ValidationMessageFor(model => model.PhotoUpload, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-sm-2">
+                                <div class="uploadfile">
+                                    <input type="hidden" name="PhotoPath" value="@Model.PhotoPath" />
+                                    <img id="image" src="@Model.PhotoPath" onerror="this.src = '/Content/images/none_photo.jpg';" />
+                                    <a href="javascript:void(0);" class="close">x</a>
+                                    @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                                    {
+                                        <span class="nofile" style="display:none;">@Resource.NoFile</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        if (Model.ID != Guid.Empty)
+                        {
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.LoginTime, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.LoginTime, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                                    @Html.ValidationMessageFor(model => model.LoginTime, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.UpdateUser, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.UpdateUser, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                                    @Html.ValidationMessageFor(model => model.UpdateUser, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.UpdateTime, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.UpdateTime, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                                    @Html.ValidationMessageFor(model => model.UpdateTime, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.CreateUser, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.CreateUser, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                                    @Html.ValidationMessageFor(model => model.CreateUser, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.CreateTime, htmlAttributes: new { @class = "control-label col-sm-2" })
+                                <div class="col-sm-4">
+                                    @Html.EditorFor(model => model.CreateTime, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                                    @Html.ValidationMessageFor(model => model.CreateTime, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                        }
+                        <div class="form-group">
+                            <div class="col-sm-offset-2 col-sm-10">
+                                <button type="submit" id="form_submit" class="btn btn-primary"><i class="fa fa-plus"></i> @Resource.Save</button>
+                                <button type="reset" class="btn btn-default"><i class="fa fa-eraser"></i> @Resource.Reset</button>
+                                <a id="exit_btn" href="@Url.Action("Index")" class="btn btn-danger"><i class="fa fa-sign-out"></i> @Resource.Exit</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
